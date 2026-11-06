@@ -50,6 +50,22 @@ export function completeCurrentStep(program: Program, today: LocalDate): Program
   };
 }
 
+/**
+ * Une séance terminée fait avancer le cycle, seulement si elle correspond
+ * toujours à l'étape courante. Sinon (étape déjà validée sur un autre
+ * appareil, programme modifié entre-temps), le programme reste inchangé :
+ * on n'avance jamais deux fois pour une même séance.
+ */
+export function completeStepAfterWorkout(
+  program: Program,
+  workout: { readonly programId: string; readonly stepId: string },
+  today: LocalDate,
+): Program {
+  const step = program.steps[program.schedule.cursor];
+  if (workout.programId !== program.id || step?.id !== workout.stepId) return program;
+  return completeCurrentStep(program, today);
+}
+
 /** Valider un repos n'a de sens que si l'étape courante est un repos. */
 export function validateRest(program: Program, today: LocalDate): Program {
   if (program.steps[program.schedule.cursor]?.kind !== 'rest') {

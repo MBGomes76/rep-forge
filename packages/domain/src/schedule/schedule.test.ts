@@ -6,6 +6,7 @@ import { pplProgram, TODAY } from '../testing/fixtures';
 import {
   bringBackToToday,
   completeCurrentStep,
+  completeStepAfterWorkout,
   effectiveAnchor,
   isPostponed,
   postpone,
@@ -76,6 +77,23 @@ describe('terminer une étape', () => {
   it('refuse un programme sans étape', () => {
     const empty = { ...pplProgram(), steps: [] };
     expect(() => completeCurrentStep(empty, TODAY)).toThrow(DomainError);
+  });
+});
+
+describe('terminer une séance fait avancer le cycle', () => {
+  it('quand la séance correspond à l’étape courante', () => {
+    const program = completeStepAfterWorkout(pplProgram(1), { programId: 'ppl', stepId: 'pull' }, TODAY);
+    expect(program.schedule).toEqual({ cursor: 2, anchor: tomorrow });
+  });
+
+  it('pas si l’étape a déjà été validée ailleurs (pas de double avancement)', () => {
+    const program = pplProgram(2);
+    expect(completeStepAfterWorkout(program, { programId: 'ppl', stepId: 'pull' }, TODAY)).toBe(program);
+  });
+
+  it('pas pour la séance d’un autre programme', () => {
+    const program = pplProgram(1);
+    expect(completeStepAfterWorkout(program, { programId: 'autre', stepId: 'pull' }, TODAY)).toBe(program);
   });
 });
 
