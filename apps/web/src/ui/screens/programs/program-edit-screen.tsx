@@ -3,12 +3,13 @@ import type { ProgramStep } from '@repforge/domain';
 import { useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router';
 import { useApp } from '../../app-context';
+import { ActionMenu } from '../../components/action-menu';
 import { ConfirmDialog } from '../../components/confirm-dialog';
 import { MoveButtons, NameField } from '../../components/form';
-import { ChevronRightIcon, TrashIcon } from '../../components/icons';
+import { ArrowDownIcon, ArrowUpIcon, ChevronRightIcon, EditIcon, TrashIcon } from '../../components/icons';
 import { Screen } from '../../components/screen';
 import { useAction } from '../../components/toaster';
-import { AppButton, Card, IconButton, Num } from '../../components/ui';
+import { AppButton, Card, Num } from '../../components/ui';
 import { plural } from '../../format';
 import { useActiveProgramId, useProgram } from '../../hooks/use-data';
 
@@ -26,6 +27,9 @@ export function ProgramEditScreen() {
 
   if (program === null) return <Navigate to="/programmes" replace />;
   if (program === undefined) return <Screen title="Programme" backTo="/programmes">{null}</Screen>;
+
+  const openStep = (stepId: string) => navigate(`/programmes/${program.id}/seances/${stepId}`);
+  const move = (stepId: string, toIndex: number) => void run(() => useCases.moveStep(program.id, stepId, toIndex));
 
   const confirmDeletion = async () => {
     const target = pending;
@@ -59,47 +63,61 @@ export function ProgramEditScreen() {
                 step={step}
                 index={i}
                 reordering={reordering}
-                onOpen={() => navigate(`/programmes/${program.id}/seances/${step.id}`)}
+                onOpen={() => openStep(step.id)}
               />
               {reordering ? (
                 <MoveButtons
                   itemLabel={`l’étape ${i + 1} (${step.name})`}
                   index={i}
                   count={program.steps.length}
-                  onMove={(to) => void run(() => useCases.moveStep(program.id, step.id, to))}
+                  onMove={(to) => move(step.id, to)}
                 />
               ) : (
-                <IconButton
-                  label={`Supprimer l’étape ${i + 1} (${step.name})`}
-                  onClick={() =>
-                    step.kind === 'rest' ? void run(() => useCases.removeStep(program.id, step.id)) : setPending({ kind: 'step', step })
-                  }
-                >
-                  <TrashIcon size={20} />
-                </IconButton>
+                <ActionMenu
+                  label={`Actions pour l’étape ${i + 1} (${step.name})`}
+                  actions={[
+                    ...(step.kind === 'workout'
+                      ? [{ label: 'Modifier la séance', icon: <EditIcon size={18} />, onSelect: () => openStep(step.id) }]
+                      : []),
+                    { label: 'Monter', icon: <ArrowUpIcon size={18} />, disabled: i === 0, onSelect: () => move(step.id, i - 1) },
+                    {
+                      label: 'Descendre',
+                      icon: <ArrowDownIcon size={18} />,
+                      disabled: i === program.steps.length - 1,
+                      onSelect: () => move(step.id, i + 1),
+                    },
+                    {
+                      label: 'Supprimer l’étape',
+                      icon: <TrashIcon size={18} />,
+                      danger: true,
+                      onSelect: () =>
+                        step.kind === 'rest' ? void run(() => useCases.removeStep(program.id, step.id)) : setPending({ kind: 'step', step }),
+                    },
+                  ]}
+                />
               )}
             </Flex>
           ))}
         </Stack>
 
         {reordering ? (
-          <AppButton small onClick={() => setReordering(false)}>
-            Terminer
-          </AppButton>
+          <AppButton onClick={() => setReordering(false)}>Terminer</AppButton>
         ) : (
-          <Flex gap="2" wrap="wrap">
-            <AppButton variant="ghost" small flex="1" w="auto" onClick={() => run(() => useCases.addStep(program.id, 'workout'))}>
-              + Entraînement
-            </AppButton>
-            <AppButton variant="ghost" small flex="1" w="auto" onClick={() => run(() => useCases.addStep(program.id, 'rest'))}>
-              + Repos
-            </AppButton>
+          <Stack gap="2">
+            <Flex gap="2">
+              <AppButton variant="secondary" small flex="1" onClick={() => run(() => useCases.addStep(program.id, 'workout'))}>
+                + Entraînement
+              </AppButton>
+              <AppButton variant="secondary" small flex="1" onClick={() => run(() => useCases.addStep(program.id, 'rest'))}>
+                + Repos
+              </AppButton>
+            </Flex>
             {program.steps.length > 1 && (
-              <AppButton variant="ghost" small onClick={() => setReordering(true)}>
+              <AppButton variant="secondary" small onClick={() => setReordering(true)}>
                 Réorganiser les étapes
               </AppButton>
             )}
-          </Flex>
+          </Stack>
         )}
 
         {program.id !== activeId && (
@@ -118,7 +136,7 @@ export function ProgramEditScreen() {
           minH="44px"
           fontSize="14px"
           fontWeight="600"
-          color="rf.muted"
+          color="rf.danger"
           textDecoration="underline"
           cursor="pointer"
         >

@@ -21,7 +21,20 @@ export function Num(props: HTMLChakraProps<'span'>) {
   return <chakra.span fontFamily="numeric" fontVariantNumeric="tabular-nums" {...props} />;
 }
 
-type ButtonVariant = 'primary' | 'ghost';
+/**
+ * - primary : l'action principale de l'écran (vert plein) ;
+ * - secondary : action importante mais pas principale (contour vert) ;
+ * - ghost : action discrète ;
+ * - danger : suppression (rouge).
+ */
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
+
+const BUTTON_COLORS: Record<ButtonVariant, { bg: string; color: string; borderColor: string }> = {
+  primary: { bg: 'rf.accent', color: 'rf.onAccent', borderColor: 'rf.accent' },
+  secondary: { bg: 'rf.doneBg', color: 'rf.accent', borderColor: 'rf.doneBorder' },
+  ghost: { bg: 'rf.control', color: 'rf.text', borderColor: 'rf.controlBorder' },
+  danger: { bg: 'rf.danger', color: 'rf.onDanger', borderColor: 'rf.danger' },
+};
 
 interface AppButtonProps extends HTMLChakraProps<'button'> {
   variant?: ButtonVariant;
@@ -32,7 +45,6 @@ export const AppButton = forwardRef<HTMLButtonElement, AppButtonProps>(function 
   { variant = 'primary', small = false, ...props },
   ref,
 ) {
-  const primary = variant === 'primary';
   return (
     <chakra.button
       ref={ref}
@@ -48,10 +60,8 @@ export const AppButton = forwardRef<HTMLButtonElement, AppButtonProps>(function 
       fontWeight="700"
       fontSize={small ? '14px' : '16px'}
       cursor="pointer"
-      bg={primary ? 'rf.accent' : 'rf.control'}
-      color={primary ? 'rf.onAccent' : 'rf.text'}
-      borderWidth={primary ? '0' : '1px'}
-      borderColor="rf.controlBorder"
+      borderWidth="1px"
+      {...BUTTON_COLORS[variant]}
       _active={{ transform: 'scale(0.98)' }}
       _disabled={{ opacity: 0.4, cursor: 'default', transform: 'none' }}
       {...props}

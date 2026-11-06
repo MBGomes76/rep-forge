@@ -75,8 +75,8 @@ describe('programmes', () => {
   });
 });
 
-describe('réorganiser', () => {
-  it('monte un exercice ajouté en dernier à la deuxième place', async () => {
+describe('réorganiser et supprimer', () => {
+  it('monte un exercice ajouté en dernier à la deuxième place, via son menu', async () => {
     const user = userEvent.setup();
     const { app } = renderApp('/programmes');
     const [fullBody] = await screen.findAllByRole('button', { name: 'Modifier' });
@@ -84,7 +84,8 @@ describe('réorganiser', () => {
     await user.click(await screen.findByRole('button', { name: /Full body A.*exercice/ }));
 
     // Ordre initial : Squat, Développé couché, Rowing barre.
-    await user.click(await screen.findByRole('button', { name: 'Monter Rowing barre' }));
+    await user.click(await screen.findByRole('button', { name: 'Actions pour Rowing barre' }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Monter' }));
     await waitFor(async () => {
       const program = (await app.deps.programs.list()).find((p) => p.name === 'Full body · 3 jours');
       const step = program?.steps[0];
@@ -94,7 +95,23 @@ describe('réorganiser', () => {
         'bench-press',
       ]);
     });
-    expect((screen.getByRole('button', { name: 'Monter Squat (barre)' }) as HTMLButtonElement).disabled).toBe(true);
+    await user.click(screen.getByRole('button', { name: 'Actions pour Squat (barre)' }));
+    expect((await screen.findByRole('menuitem', { name: 'Monter' })).getAttribute('aria-disabled')).toBe('true');
+  });
+
+  it('supprime une séance depuis son menu, après confirmation', async () => {
+    const user = userEvent.setup();
+    const { app } = renderApp('/programmes');
+    const [, ppl] = await screen.findAllByRole('button', { name: 'Modifier' });
+    await user.click(ppl!);
+    await user.click(await screen.findByRole('button', { name: 'Actions pour l’étape 4 (Jambes)' }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Supprimer l’étape' }));
+    await user.click(await screen.findByRole('button', { name: 'Supprimer' }));
+
+    await waitFor(async () => {
+      const program = (await app.deps.programs.list()).find((p) => p.name.startsWith('PPL'));
+      expect(program?.steps.map((s) => s.name)).toEqual(['Push', 'Pull', 'Repos', 'Repos']);
+    });
   });
 
   it('déplace une étape du cycle en mode réorganisation, sans changer l’étape courante', async () => {

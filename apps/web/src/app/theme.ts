@@ -27,6 +27,10 @@ const config = defineConfig({
           amber: { value: '#F5C26B' },
           amberBorder: { value: '#6B5A2E' },
           planned: { value: '#8FB4FF' },
+          danger: { value: '#F87171' },
+          onDanger: { value: '#2A0A0F' },
+          dangerBg: { value: '#2E1620' },
+          dangerBorder: { value: '#6E2A36' },
         },
       },
       fonts: {

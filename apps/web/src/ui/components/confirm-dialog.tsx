@@ -10,7 +10,7 @@ interface ConfirmDialogProps {
   onCancel: () => void;
 }
 
-/** Confirmation avant une action irréversible. */
+/** Confirmation avant une suppression (action irréversible, bouton rouge). */
 export function ConfirmDialog({ open, title, description, confirmLabel, onConfirm, onCancel }: ConfirmDialogProps) {
   return (
     <Dialog.Root open={open} onOpenChange={(e) => !e.open && onCancel()} role="alertdialog" placement="center">
@@ -31,7 +31,7 @@ export function ConfirmDialog({ open, title, description, confirmLabel, onConfir
                 <AppButton variant="ghost" small onClick={onCancel}>
                   Annuler
                 </AppButton>
-                <AppButton small bg="rf.amber" color="rf.onAccent" onClick={onConfirm}>
+                <AppButton small variant="danger" onClick={onConfirm}>
                   {confirmLabel}
                 </AppButton>
               </Flex>

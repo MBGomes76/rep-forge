@@ -5,3 +5,10 @@ import { afterEach } from 'vitest';
 
 // Sans `globals: true`, Testing Library ne démonte pas les rendus tout seul.
 afterEach(() => cleanup());
+
+// jsdom ne fournit pas ResizeObserver, utilisé pour positionner les menus déroulants.
+globalThis.ResizeObserver ??= class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};

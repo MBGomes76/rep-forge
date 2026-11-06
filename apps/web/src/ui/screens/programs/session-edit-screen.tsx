@@ -3,11 +3,12 @@ import { fixedTarget, rangeTarget, type Exercise, type PlannedExercise, type Rep
 import { useState } from 'react';
 import { Navigate, useParams } from 'react-router';
 import { useApp } from '../../app-context';
-import { MoveButtons, NameField, Stepper } from '../../components/form';
-import { PlusIcon, TrashIcon } from '../../components/icons';
+import { ActionMenu } from '../../components/action-menu';
+import { NameField, Stepper } from '../../components/form';
+import { ArrowDownIcon, ArrowUpIcon, PlusIcon, TrashIcon } from '../../components/icons';
 import { Screen } from '../../components/screen';
 import { useAction } from '../../components/toaster';
-import { AppButton, Card, Chip, IconButton } from '../../components/ui';
+import { AppButton, Card, Chip } from '../../components/ui';
 import { formatRest } from '../../format';
 import { useProgram } from '../../hooks/use-data';
 import { CatalogSheet } from './catalog-sheet';
@@ -125,10 +126,14 @@ function PlannedExerciseCard({ planned, index, count, onMove, exercise, onChange
               {exercise?.loadConvention}
             </Box>
           </Box>
-          {count > 1 && <MoveButtons itemLabel={name} index={index} count={count} onMove={onMove} />}
-          <IconButton label={`Retirer ${name}`} onClick={onRemove}>
-            <TrashIcon size={20} />
-          </IconButton>
+          <ActionMenu
+            label={`Actions pour ${name}`}
+            actions={[
+              { label: 'Monter', icon: <ArrowUpIcon size={18} />, disabled: index === 0, onSelect: () => onMove(index - 1) },
+              { label: 'Descendre', icon: <ArrowDownIcon size={18} />, disabled: index === count - 1, onSelect: () => onMove(index + 1) },
+              { label: 'Retirer de la séance', icon: <TrashIcon size={18} />, danger: true, onSelect: onRemove },
+            ]}
+          />
         </Flex>
 
         <Stepper
