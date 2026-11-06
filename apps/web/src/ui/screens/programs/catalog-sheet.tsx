@@ -85,6 +85,7 @@ export function CatalogSheet({ onPick, onClose }: { onPick: (exercise: Exercise)
             onClick={() => onPick(exercise)}
             aria-label={`Ajouter ${exercise.name}`}
             w="100%"
+            flexShrink="0"
             minH="64px"
             borderRadius="button"
             bg="rf.card"
