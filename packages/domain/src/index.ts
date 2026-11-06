@@ -4,6 +4,7 @@ export * from './shared/domain-error';
 export * from './shared/local-date';
 
 export * from './catalog/exercise';
+export * from './catalog/search';
 
 export * from './program/rep-target';
 export * from './program/program';

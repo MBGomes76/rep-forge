@@ -137,6 +137,14 @@ export function recordSet(
   });
 }
 
+/** Annule la validation d'une série (pour la corriger avant de la revalider). */
+export function unrecordSet(workout: Workout, workoutExerciseId: string, setId: string): Workout {
+  return updateExercise(workout, workoutExerciseId, (exercise) => {
+    if (!exercise.sets.some((s) => s.id === setId)) throw new DomainError('Série introuvable.');
+    return { ...exercise, sets: exercise.sets.map((s) => (s.id === setId ? { ...s, performance: null } : s)) };
+  });
+}
+
 /** Ajoute une série vide à la fin de l'exercice. */
 export function addSet(workout: Workout, workoutExerciseId: string, setId: string): Workout {
   return updateExercise(workout, workoutExerciseId, (exercise) => ({

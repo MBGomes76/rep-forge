@@ -10,6 +10,7 @@ import {
   recordSet,
   resolveSetInput,
   startWorkout,
+  unrecordSet,
   workoutDurationSeconds,
   type SetPerformance,
   type Workout,
@@ -98,6 +99,15 @@ describe('saisir les séries', () => {
 
     workout = recordSet(workout, exercise.id, setId, reps(62.5, 8, 1));
     expect(workout.exercises[0]?.sets[0]?.performance).toEqual(reps(62.5, 8, 1));
+  });
+
+  it('annule la validation d’une série', () => {
+    let workout = startPush();
+    const exercise = workout.exercises[0]!;
+    const setId = exercise.sets[0]!.id;
+    workout = unrecordSet(recordSet(workout, exercise.id, setId, reps(60, 10)), exercise.id, setId);
+    expect(workout.exercises[0]?.sets[0]?.performance).toBeNull();
+    expect(() => unrecordSet(workout, exercise.id, 'inconnue')).toThrow(DomainError);
   });
 
   it('ajoute une série', () => {
