@@ -37,7 +37,7 @@ export function isPostponed(program: Program, today: LocalDate): boolean {
 }
 
 /**
- * Séance terminée ou repos validé : on passe à l'étape suivante (en bouclant),
+ * Séance terminée : on passe à l'étape suivante (en bouclant),
  * prévue pour demain.
  */
 export function completeCurrentStep(program: Program, today: LocalDate): Program {
@@ -66,34 +66,63 @@ export function completeStepAfterWorkout(
   return completeCurrentStep(program, today);
 }
 
-/** Index de la prochaine étape d'entraînement après l'étape courante, ou `undefined` s'il n'y en a pas. */
-export function nextWorkoutIndex(program: Program): number | undefined {
-  const count = program.steps.length;
-  for (let offset = 1; offset <= count; offset++) {
-    const index = (program.schedule.cursor + offset) % count;
-    if (program.steps[index]?.kind === 'workout') return index;
-  }
+/** L'étape courante est prévue aujourd'hui (ou sa date est passée, ce qui revient au même). */
+export function isPlannedToday(program: Program, today: LocalDate): boolean {
+  return effectiveAnchor(program.schedule, today) === today;
+}
+
+/**
+ * Index de l'étape qu'« Avancer » prévoirait aujourd'hui, ou `undefined` si
+ * rien n'est à avancer (une séance est déjà prévue aujourd'hui) :
+ * - l'étape courante est prévue plus tard (reportée, ou demain après une séance) : elle-même ;
+ * - l'étape d'aujourd'hui est un repos : l'étape suivante, entraînement ou repos.
+ */
+export function advanceTargetIndex(program: Program, today: LocalDate): number | undefined {
+  const step = program.steps[program.schedule.cursor];
+  if (!step) return undefined;
+  if (!isPlannedToday(program, today)) return program.schedule.cursor;
+  if (step.kind === 'rest' && program.steps.length > 1) return stepIndexAfter(program, 1);
   return undefined;
 }
 
 /**
- * « Avancer la séance » : l'inverse du report. Le ou les repos courants sont
- * sautés (ils ne comptent pas comme faits) et la prochaine séance prend leur
- * date prévue. Toutes les étapes suivantes arrivent donc plus tôt.
+ * « Avancer » : l'inverse du report. L'étape ciblée est prévue aujourd'hui et
+ * toutes les suivantes arrivent un jour plus tôt. Un repos sauté ne compte pas
+ * comme fait.
  */
-export function advanceNextWorkout(program: Program, today: LocalDate): Program {
-  if (program.steps[program.schedule.cursor]?.kind !== 'rest') {
-    throw new DomainError("Seul un repos peut être sauté pour avancer la séance suivante.");
-  }
-  const cursor = nextWorkoutIndex(program);
-  if (cursor === undefined) throw new DomainError('Ce programme ne contient aucune séance à avancer.');
-  return { ...program, schedule: { cursor, anchor: effectiveAnchor(program.schedule, today) } };
+export function advance(program: Program, today: LocalDate): Program {
+  const cursor = advanceTargetIndex(program, today);
+  if (cursor === undefined) throw new DomainError("Une séance est déjà prévue aujourd'hui : rien à avancer.");
+  return { ...program, schedule: { cursor, anchor: today } };
 }
 
-/** Valider un repos n'a de sens que si l'étape courante est un repos. */
-export function validateRest(program: Program, today: LocalDate): Program {
-  if (program.steps[program.schedule.cursor]?.kind !== 'rest') {
-    throw new DomainError("L'étape courante n'est pas un repos.");
+export interface SettledRest {
+  readonly stepId: string;
+  readonly name: string;
+  readonly date: LocalDate;
+}
+
+/**
+ * Un repos se fait tout seul : une fois sa journée passée, il compte comme
+ * fait et le cycle avance (`anchor` + 1 jour par repos). On s'arrête sur la
+ * première séance, qui, elle, attend l'utilisateur.
+ *
+ * Le calcul ne dépend que du programme et de la date : deux appareils hors
+ * ligne aboutissent au même résultat, sans conflit.
+ */
+export function settleElapsedRests(
+  program: Program,
+  today: LocalDate,
+): { readonly program: Program; readonly rests: readonly SettledRest[] } {
+  const rests: SettledRest[] = [];
+  let { cursor, anchor } = program.schedule;
+  let step = program.steps[cursor];
+  while (step?.kind === 'rest' && anchor < today) {
+    rests.push({ stepId: step.id, name: step.name, date: anchor });
+    cursor = (cursor + 1) % program.steps.length;
+    anchor = addDays(anchor, 1);
+    step = program.steps[cursor];
   }
-  return completeCurrentStep(program, today);
+  if (rests.length === 0) return { program, rests };
+  return { program: { ...program, schedule: { cursor, anchor } }, rests };
 }

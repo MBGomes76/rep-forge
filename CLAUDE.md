@@ -31,17 +31,18 @@ Une maquette interactive du parcours principal existe (artifact privé, mobile 3
 ### Programmes et cycle
 - Un programme est un cycle de durée libre (3, 5, 6, 9 jours ou plus) composé d'étapes : « entraînement » ou « repos ».
 - Le cycle n'est PAS lié aux jours de la semaine. Une absence ne fait pas avancer le programme.
-- Terminer un entraînement ou valider un repos fait passer à l'étape suivante. À la fin, le cycle recommence à la première étape.
+- Terminer un entraînement fait passer à l'étape suivante. Un repos n'est pas validé : il est accompli automatiquement une fois sa journée passée. À la fin, le cycle recommence à la première étape.
 - Chaque séance se personnalise : nom, exercices, ordre, nombre de séries, répétitions attendues, temps de repos.
 - Objectif de répétitions : soit une plage (défaut : 3 séries de 8 à 12), soit un objectif fixe. Valeurs par défaut modifiables.
 
 ### Calendrier et report
 - Le calendrier est une projection du cycle sur les jours réels, à raison d'une étape par jour, à partir d'une « date prévue de l'étape courante » (`anchor`). Jour d >= anchor : étape `(cursor + (d - anchor)) mod n`.
 - `anchor` effectif = max(anchor stocké, aujourd'hui) : un jour manqué ne fait pas avancer le cycle, l'étape est simplement prévue aujourd'hui.
-- « Reporter au lendemain » : `anchor += 1`, ce qui décale tout le cycle d'un jour. Reports répétables. « Ramener à aujourd'hui » : `anchor = aujourd'hui`.
-- Terminer une étape (séance terminée ou repos validé) : `cursor` avance et `anchor = aujourd'hui + 1`.
+- « Reporter au lendemain » : `anchor += 1`, ce qui décale tout le cycle d'un jour. Reports répétables.
+- « Avancer » (à la place de « Démarrer » quand aucune séance n'est prévue aujourd'hui) : étape reportée ou prévue plus tard → `anchor = aujourd'hui` ; repos du jour → sauté, `cursor` avance et `anchor = aujourd'hui` (même si l'étape suivante est un repos).
+- Terminer une séance : `cursor` avance et `anchor = aujourd'hui + 1`. Repos dont la date est passée : accompli, `cursor` avance et `anchor += 1`.
 - Choix de stockage : une date prévue pour l'étape courante, plutôt qu'une liste de reports (plus simple à synchroniser sans conflit).
-- Les jours passés du calendrier viennent de l'historique (séance faite, repos validé).
+- Les jours passés du calendrier viennent de l'historique (séance faite, repos accompli).
 
 ### Catalogue d'exercices
 - Exercices classiques : poids du corps, barres, haltères, machines, poulies.

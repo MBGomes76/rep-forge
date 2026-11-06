@@ -5,15 +5,16 @@ import { addDays } from '../shared/local-date';
 import { pplProgram, TODAY } from '../testing/fixtures';
 import { projectCalendar } from './calendar';
 import {
-  advanceNextWorkout,
-  nextWorkoutIndex,
+  advance,
+  advanceTargetIndex,
   bringBackToToday,
   completeCurrentStep,
   completeStepAfterWorkout,
   effectiveAnchor,
+  isPlannedToday,
   isPostponed,
   postpone,
-  validateRest,
+  settleElapsedRests,
 } from './schedule';
 
 const tomorrow = addDays(TODAY, 1);
@@ -100,50 +101,79 @@ describe('terminer une séance fait avancer le cycle', () => {
   });
 });
 
-describe('avancer la séance suivante', () => {
-  it('saute le repos du jour et prévoit la séance suivante aujourd’hui', () => {
-    const program = advanceNextWorkout(pplProgram(2), TODAY);
+describe('avancer', () => {
+  it('un jour de repos : saute le repos et prévoit l’étape suivante aujourd’hui', () => {
+    const program = advance(pplProgram(2), TODAY);
     expect(currentStep(program)?.name).toBe('Jambes');
     expect(program.schedule).toEqual({ cursor: 3, anchor: TODAY });
   });
 
   it('décale tout le cycle d’un jour plus tôt dans le calendrier', () => {
-    const days = projectCalendar({ program: advanceNextWorkout(pplProgram(2), TODAY), today: TODAY, from: TODAY, to: addDays(TODAY, 2), history: [] });
+    const days = projectCalendar({ program: advance(pplProgram(2), TODAY), today: TODAY, from: TODAY, to: addDays(TODAY, 2), history: [] });
     expect(days.map((d) => (d.status.kind === 'planned' ? d.status.step.name : d.status.kind))).toEqual(['Jambes', 'Repos', 'Push']);
   });
 
-  it('saute plusieurs repos d’affilée, en bouclant sur le début du cycle', () => {
-    // Étape 5 (Repos) : la séance suivante est Push, au début du cycle.
-    expect(currentStep(advanceNextWorkout(pplProgram(4), TODAY))?.name).toBe('Push');
-    const restHeavy = {
+  it('avance l’étape suivante même si c’est un repos', () => {
+    const twoRests = {
       ...pplProgram(0),
       steps: [
         { kind: 'rest' as const, id: 'r1', name: 'Repos' },
-        { kind: 'rest' as const, id: 'r2', name: 'Repos' },
+        { kind: 'rest' as const, id: 'r2', name: 'Repos actif' },
         { kind: 'workout' as const, id: 'w', name: 'Full body', exercises: [] },
       ],
     };
-    expect(advanceNextWorkout(restHeavy, TODAY).schedule.cursor).toBe(2);
+    expect(currentStep(advance(twoRests, TODAY))?.name).toBe('Repos actif');
+    // En fin de cycle, l’étape suivante est la première.
+    expect(currentStep(advance(pplProgram(4), TODAY))?.name).toBe('Push');
   });
 
-  it('garde la date prévue si le repos était prévu plus tard (séance déjà faite aujourd’hui)', () => {
-    expect(advanceNextWorkout(pplProgram(2, tomorrow), TODAY).schedule.anchor).toBe(tomorrow);
+  it('une séance reportée ou prévue demain est ramenée à aujourd’hui', () => {
+    const postponed = postpone(pplProgram(0), TODAY);
+    expect(isPlannedToday(postponed, TODAY)).toBe(false);
+    expect(advanceTargetIndex(postponed, TODAY)).toBe(0);
+    expect(advance(postponed, TODAY).schedule).toEqual({ cursor: 0, anchor: TODAY });
   });
 
-  it('est refusé sur une étape d’entraînement ou sans séance dans le programme', () => {
-    expect(() => advanceNextWorkout(pplProgram(0), TODAY)).toThrow(DomainError);
+  it('un repos prévu demain (séance déjà faite aujourd’hui) est d’abord ramené à aujourd’hui', () => {
+    expect(advance(pplProgram(2, tomorrow), TODAY).schedule).toEqual({ cursor: 2, anchor: TODAY });
+  });
+
+  it('rien à avancer quand une séance est prévue aujourd’hui, ou pour un cycle d’un seul repos', () => {
+    expect(advanceTargetIndex(pplProgram(0), TODAY)).toBeUndefined();
+    expect(() => advance(pplProgram(0), TODAY)).toThrow(DomainError);
     const onlyRest = { ...pplProgram(0), steps: [{ kind: 'rest' as const, id: 'r', name: 'Repos' }] };
-    expect(nextWorkoutIndex(onlyRest)).toBeUndefined();
-    expect(() => advanceNextWorkout(onlyRest, TODAY)).toThrow(DomainError);
+    expect(advanceTargetIndex(onlyRest, TODAY)).toBeUndefined();
   });
 });
 
-describe('valider un repos', () => {
-  it('fait avancer le cycle quand l’étape courante est un repos', () => {
-    expect(validateRest(pplProgram(2), TODAY).schedule).toEqual({ cursor: 3, anchor: tomorrow });
+describe('repos accomplis automatiquement', () => {
+  it('un repos dont la journée est passée compte comme fait, le cycle avance', () => {
+    const yesterday = addDays(TODAY, -1);
+    const { program, rests } = settleElapsedRests(pplProgram(2, yesterday), TODAY);
+    expect(rests).toEqual([{ stepId: 'rest-1', name: 'Repos', date: yesterday }]);
+    expect(program.schedule).toEqual({ cursor: 3, anchor: TODAY });
   });
 
-  it('est refusé sur une étape d’entraînement', () => {
-    expect(() => validateRest(pplProgram(0), TODAY)).toThrow(DomainError);
+  it('le repos du jour n’est pas encore accompli', () => {
+    const program = pplProgram(2);
+    expect(settleElapsedRests(program, TODAY)).toEqual({ program, rests: [] });
+  });
+
+  it('enchaîne plusieurs repos passés puis s’arrête sur la séance, qui attend l’utilisateur', () => {
+    const steps = [
+      { kind: 'rest' as const, id: 'r1', name: 'Repos' },
+      { kind: 'rest' as const, id: 'r2', name: 'Repos' },
+      { kind: 'workout' as const, id: 'w', name: 'Full body', exercises: [] },
+    ];
+    const longAgo = addDays(TODAY, -10);
+    const { program, rests } = settleElapsedRests({ ...pplProgram(0), steps, schedule: { cursor: 0, anchor: longAgo } }, TODAY);
+    expect(rests.map((r) => r.date)).toEqual([longAgo, addDays(longAgo, 1)]);
+    expect(program.schedule).toEqual({ cursor: 2, anchor: addDays(longAgo, 2) });
+    expect(effectiveAnchor(program.schedule, TODAY)).toBe(TODAY);
+  });
+
+  it('ne touche pas une séance manquée', () => {
+    const program = pplProgram(0, addDays(TODAY, -3));
+    expect(settleElapsedRests(program, TODAY).program).toBe(program);
   });
 });

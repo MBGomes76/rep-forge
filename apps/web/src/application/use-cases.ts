@@ -1,12 +1,11 @@
 import {
   addSet as addSetToWorkout,
-  advanceNextWorkout,
+  advance,
   addStep as addStepToProgram,
   adjustRest,
   assertValidPlannedExercise,
-  bringBackToToday,
+  effectiveAnchor,
   completeStepAfterWorkout,
-  currentStep,
   DomainError,
   finishWorkout as finishDomainWorkout,
   fromDate,
@@ -23,7 +22,7 @@ import {
   startRest,
   startWorkout as startDomainWorkout,
   unrecordSet,
-  validateRest,
+  settleElapsedRests,
   type PlannedExercise,
   type Program,
   type SetInput,
@@ -106,24 +105,32 @@ export function createUseCases(deps: Dependencies) {
       await programs.save(postpone(program, today()));
     },
 
-    async bringBackActive(): Promise<void> {
+    /**
+     * « Avancer » : l'étape suivante (ou l'étape reportée) est prévue
+     * aujourd'hui, tout le cycle arrive un jour plus tôt.
+     */
+    async advanceActive(): Promise<void> {
       const program = await requireActiveProgram();
-      await programs.save(bringBackToToday(program, today()));
+      await programs.save(advance(program, today()));
     },
 
-    /** Saute le repos courant : la séance suivante est prévue à sa place. */
-    async advanceActiveWorkout(): Promise<void> {
-      const program = await requireActiveProgram();
-      await programs.save(advanceNextWorkout(program, today()));
-    },
-
-    async validateActiveRest(): Promise<void> {
-      const program = await requireActiveProgram();
-      const step = currentStep(program);
-      const updated = validateRest(program, today());
+    /**
+     * Les repos dont la journée est passée comptent comme faits : le cycle
+     * avance et ils entrent dans l'historique. À lancer au démarrage et à
+     * chaque changement de date. Ne fait rien s'il n'y a rien à régler.
+     */
+    async settleRests(): Promise<void> {
       await transaction(async () => {
-        await programs.save(updated);
-        await restDays.add({ id: newId(), programId: program.id, stepId: step!.id, name: step!.name, date: today() });
+        const id = await settings.getActiveProgramId();
+        const program = id ? await programs.get(id) : undefined;
+        if (!program) return;
+        const settled = settleElapsedRests(program, today());
+        if (settled.rests.length === 0) return;
+        await programs.save(settled.program);
+        for (const rest of settled.rests) {
+          // Identifiant déterministe : deux appareils qui règlent le même repos produisent la même entrée.
+          await restDays.add({ id: `${program.id}:${rest.date}`, programId: program.id, ...rest });
+        }
       });
     },
 
@@ -227,8 +234,13 @@ export function createUseCases(deps: Dependencies) {
     },
 
     async activateProgram(programId: string): Promise<void> {
-      await requireProgram(programId);
-      await settings.setActiveProgramId(programId);
+      const program = await requireProgram(programId);
+      // Un programme repris après une pause reprend aujourd'hui : ses repos « passés » n'ont pas eu lieu.
+      const anchor = effectiveAnchor(program.schedule, today());
+      await transaction(async () => {
+        await programs.save({ ...program, schedule: { ...program.schedule, anchor } });
+        await settings.setActiveProgramId(programId);
+      });
     },
 
     /** Supprime un programme. L'historique est conservé (les séances sont des instantanés). */

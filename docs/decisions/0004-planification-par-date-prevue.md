@@ -7,11 +7,17 @@
 - Projection : un jour `d >= anchor` affiche l'étape `(cursor + (d − anchor)) mod n`.
 - `anchor` effectif = `max(anchor, aujourd'hui)` : un jour manqué ne fait pas avancer le cycle.
 - Reporter : `anchor = anchor effectif + 1`. Ramener à aujourd'hui : `anchor = aujourd'hui`.
-- Terminer une étape : `cursor + 1 (mod n)` et `anchor = aujourd'hui + 1`.
+- Terminer une séance : `cursor + 1 (mod n)` et `anchor = aujourd'hui + 1`.
 - Les jours passés viennent de l'historique, pas de la projection.
 
 **Alternative écartée.** Stocker la liste des reports : à recalculer à chaque affichage, et deux appareils hors ligne produiraient deux listes à fusionner. Ici, un conflit porte sur une seule valeur, facile à présenter à l'utilisateur.
 
 **Détail.** Quand une étape est supprimée ou déplacée, `cursor` suit l'identifiant de l'étape courante pour ne pas sauter d'étape par accident.
 
-**Avancer une séance** (ajout). Inverse du report, proposé quand l'étape courante est un repos : le ou les repos sont sautés (ils ne comptent pas comme faits) et la prochaine séance prend leur date prévue : `cursor = prochain entraînement`, `anchor` inchangé (effectif). Toutes les étapes suivantes arrivent un jour plus tôt. Une seule valeur change de plus, comme pour le report.
+**Repos accomplis automatiquement** (révision). Un repos n'a rien à « valider » : une fois sa journée passée, il compte comme fait. Tant que l'étape courante est un repos dont la date (`anchor` stocké) est passée : il entre dans l'historique à cette date, `cursor + 1`, `anchor + 1`. On s'arrête à la première séance, qui attend l'utilisateur. Le calcul ne dépend que du programme et de la date : deux appareils hors ligne produisent le même résultat (et la même entrée d'historique, à identifiant déterministe), donc aucun conflit. Activer un programme laissé de côté ramène son `anchor` à aujourd'hui, pour ne pas inventer des repos pendant la pause.
+
+**Avancer** (révision). Inverse du report, proposé quand aucune séance n'est prévue aujourd'hui, à la place de « Démarrer » :
+- l'étape courante est prévue plus tard (reportée, ou demain après une séance) : `anchor = aujourd'hui` ;
+- l'étape du jour est un repos : il est sauté (il ne compte pas comme fait), `cursor + 1` et `anchor = aujourd'hui`, que l'étape suivante soit une séance ou un autre repos.
+
+Toutes les étapes suivantes arrivent un jour plus tôt. « Ramener à aujourd'hui » est absorbé par ce bouton.

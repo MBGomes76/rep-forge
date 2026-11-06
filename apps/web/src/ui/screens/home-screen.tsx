@@ -1,13 +1,14 @@
 import { Box, Flex, Stack } from '@chakra-ui/react';
 import {
   addDays,
+  advanceTargetIndex,
   completedSets,
   currentStep,
   effectiveAnchor,
   formatTarget,
   fromDate,
+  isPlannedToday,
   nextStep,
-  nextWorkoutIndex,
   projectCalendar,
   summarizeWorkout,
   workoutDurationSeconds,
@@ -251,50 +252,36 @@ function NextStepCard({ program, today }: { program: Program; today: LocalDate }
   }
 
   const anchor = effectiveAnchor(program.schedule, today);
-  const postponed = anchor > today;
-  const planLabel = `Prévue ${plannedWhen(anchor, today)}`;
-  const reportButtons = (
-    <Flex gap="2">
-      <AppButton variant="ghost" small onClick={() => run(() => useCases.postponeActive(), postponed ? 'Reporté encore d’un jour · le cycle est décalé' : 'Reporté à demain · le cycle est décalé d’un jour')}>
-        {postponed ? 'Reporter encore d’un jour' : 'Reporter au lendemain'}
-      </AppButton>
-      {postponed && (
-        <AppButton variant="ghost" small onClick={() => run(() => useCases.bringBackActive(), 'Remis à aujourd’hui')}>
-          Ramener à aujourd'hui
-        </AppButton>
-      )}
-    </Flex>
+  const plannedToday = isPlannedToday(program, today);
+  const when = plannedWhen(anchor, today);
+
+  // Rien de prévu aujourd'hui (repos, ou séance reportée) : on propose d'avancer l'étape suivante.
+  const targetIndex = advanceTargetIndex(program, today);
+  const target = targetIndex === undefined ? undefined : program.steps[targetIndex];
+  const targetName = target?.kind === 'rest' ? 'le repos' : target?.name;
+  const advanceButton = target && (
+    <AppButton
+      variant={target.kind === 'workout' ? 'primary' : 'ghost'}
+      small={target.kind === 'rest'}
+      onClick={() => run(() => useCases.advanceActive(), `Avancé à aujourd’hui : ${target.name} · le cycle arrive un jour plus tôt`)}
+    >
+      Avancer {targetName} à aujourd’hui
+    </AppButton>
   );
 
   if (step.kind === 'rest') {
     const next = nextStep(program);
-    const workoutIndex = nextWorkoutIndex(program);
-    const nextWorkout = workoutIndex === undefined ? undefined : program.steps[workoutIndex];
     return (
       <Card>
         <Stack gap="3">
-          <Label>{planLabel}</Label>
+          <Label>Prévu {when}</Label>
           <Box fontSize="24px" fontWeight="700">
-            Repos
+            {step.name}
           </Box>
           <Box fontSize="15px" color="rf.soft" lineHeight="1.45">
-            Récupère. Valide ce repos pour passer à l’étape suivante : {next?.name}.
+            Récupère. Le repos compte tout seul : le lendemain, place à {next?.name}.
           </Box>
-          <AppButton onClick={() => run(() => useCases.validateActiveRest(), `Repos validé · prochaine étape : ${next?.name}`)}>
-            Valider le repos
-          </AppButton>
-          {nextWorkout && (
-            <AppButton
-              variant="ghost"
-              small
-              onClick={() =>
-                run(() => useCases.advanceActiveWorkout(), `Séance avancée : ${nextWorkout.name} · le cycle est décalé d’un jour plus tôt`)
-              }
-            >
-              Avancer {nextWorkout.name} à {plannedWhen(anchor, today)}
-            </AppButton>
-          )}
-          {reportButtons}
+          {advanceButton}
         </Stack>
       </Card>
     );
@@ -308,7 +295,7 @@ function NextStepCard({ program, today }: { program: Program; today: LocalDate }
   return (
     <Card>
       <Stack gap="3.5">
-        <Label>{planLabel}</Label>
+        <Label>Prévue {when}</Label>
         <Box fontSize="26px" fontWeight="700" letterSpacing="-0.01em">
           {step.name}
         </Box>
@@ -322,11 +309,21 @@ function NextStepCard({ program, today }: { program: Program; today: LocalDate }
             <PlannedLine key={planned.id} exerciseId={planned.exerciseId} meta={`${planned.sets} × ${formatTarget(planned.target)}`} />
           ))}
         </Stack>
-        <AppButton disabled={step.exercises.length === 0} onClick={start}>
-          <PlayIcon size={18} />
-          Démarrer l'entraînement
+        {plannedToday ? (
+          <AppButton disabled={step.exercises.length === 0} onClick={start}>
+            <PlayIcon size={18} />
+            Démarrer l'entraînement
+          </AppButton>
+        ) : (
+          advanceButton
+        )}
+        <AppButton
+          variant="ghost"
+          small
+          onClick={() => run(() => useCases.postponeActive(), `Reporté · ${step.name} prévue ${plannedWhen(addDays(anchor, 1), today)}`)}
+        >
+          {plannedToday ? 'Reporter au lendemain' : 'Reporter encore d’un jour'}
         </AppButton>
-        {reportButtons}
       </Stack>
     </Card>
   );

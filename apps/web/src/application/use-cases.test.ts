@@ -135,22 +135,43 @@ describe('séance complète', () => {
 });
 
 describe('repos et report', () => {
-  it('valider un repos l’inscrit pour le calendrier et avance le cycle', async () => {
+  it('un repos passé est accompli tout seul : il entre dans l’historique et le cycle avance', async () => {
     const program = await activeProgram();
     await app.deps.programs.save({ ...program, schedule: { ...program.schedule, cursor: 2 } });
 
-    await app.useCases.validateActiveRest();
+    await app.useCases.settleRests(); // le repos du jour n’est pas encore passé
+    expect(currentStep(await activeProgram())?.name).toBe('Repos');
+
+    clock.set('2026-11-07T08:00:00');
+    await app.useCases.settleRests();
+    await app.useCases.settleRests(); // sans effet la seconde fois
     expect(currentStep(await activeProgram())?.name).toBe('Jambes');
     expect(await app.deps.restDays.list()).toEqual([
       expect.objectContaining({ name: 'Repos', date: localDate('2026-11-06') }),
     ]);
   });
 
-  it('reporter puis ramener à aujourd’hui', async () => {
+  it('avancer un jour de repos prévoit l’étape suivante aujourd’hui, sans compter le repos', async () => {
+    const program = await activeProgram();
+    await app.deps.programs.save({ ...program, schedule: { ...program.schedule, cursor: 2 } });
+    await app.useCases.advanceActive();
+    expect((await activeProgram()).schedule).toEqual({ cursor: 3, anchor: localDate('2026-11-06') });
+    expect(await app.deps.restDays.list()).toEqual([]);
+  });
+
+  it('activer un programme laissé de côté le reprend aujourd’hui', async () => {
+    const activeId = (await activeProgram()).id;
+    const other = (await app.deps.programs.list()).find((p) => p.id !== activeId)!;
+    await app.deps.programs.save({ ...other, schedule: { cursor: 0, anchor: localDate('2026-10-01') } });
+    await app.useCases.activateProgram(other.id);
+    expect((await activeProgram()).schedule.anchor).toBe(localDate('2026-11-06'));
+  });
+
+  it('reporter deux fois, puis avancer à aujourd’hui', async () => {
     await app.useCases.postponeActive();
     await app.useCases.postponeActive();
     expect((await activeProgram()).schedule.anchor).toBe(localDate('2026-11-08'));
-    await app.useCases.bringBackActive();
+    await app.useCases.advanceActive();
     expect((await activeProgram()).schedule.anchor).toBe(localDate('2026-11-06'));
   });
 });
