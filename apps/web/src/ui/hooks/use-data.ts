@@ -16,7 +16,8 @@ export function usePrograms(): Program[] | undefined {
 
 export function useProgram(id: string | undefined): Program | null | undefined {
   const { deps } = useApp();
-  return useLiveQuery(async () => (id ? ((await deps.programs.get(id)) ?? null) : null), [deps, id]);
+  // Sans id (pas encore connu) : chargement, pas « introuvable ».
+  return useLiveQuery(async () => (id ? ((await deps.programs.get(id)) ?? null) : undefined), [deps, id]);
 }
 
 export function useActiveProgramId(): string | null | undefined {
