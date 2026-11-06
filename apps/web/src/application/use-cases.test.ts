@@ -39,7 +39,7 @@ beforeEach(async () => {
 describe('premier lancement', () => {
   it('crée les programmes modèles et active le premier', async () => {
     const programs = await app.deps.programs.list();
-    expect(programs.map((p) => p.name)).toEqual(['PPL · cycle de 5 jours', 'Full body · 3 jours']);
+    expect(programs.map((p) => p.name)).toEqual(['Full body · 3 jours', 'PPL · cycle de 5 jours']);
     expect((await activeProgram()).name).toBe('PPL · cycle de 5 jours');
   });
 

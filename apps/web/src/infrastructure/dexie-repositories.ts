@@ -17,7 +17,8 @@ function toWorkout({ state: _state, ...workout }: WorkoutRecord): Workout {
 
 export function dexieProgramRepository(db: RepForgeDb): ProgramRepository {
   return {
-    list: () => db.programs.toArray(),
+    // Ordre alphabétique : prévisible (les identifiants sont des UUID aléatoires).
+    list: async () => (await db.programs.toArray()).sort((a, b) => a.name.localeCompare(b.name, 'fr')),
     get: (id) => db.programs.get(id),
     save: async (program: Program) => {
       await db.programs.put(program);
