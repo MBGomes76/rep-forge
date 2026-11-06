@@ -66,6 +66,30 @@ export function completeStepAfterWorkout(
   return completeCurrentStep(program, today);
 }
 
+/** Index de la prochaine étape d'entraînement après l'étape courante, ou `undefined` s'il n'y en a pas. */
+export function nextWorkoutIndex(program: Program): number | undefined {
+  const count = program.steps.length;
+  for (let offset = 1; offset <= count; offset++) {
+    const index = (program.schedule.cursor + offset) % count;
+    if (program.steps[index]?.kind === 'workout') return index;
+  }
+  return undefined;
+}
+
+/**
+ * « Avancer la séance » : l'inverse du report. Le ou les repos courants sont
+ * sautés (ils ne comptent pas comme faits) et la prochaine séance prend leur
+ * date prévue. Toutes les étapes suivantes arrivent donc plus tôt.
+ */
+export function advanceNextWorkout(program: Program, today: LocalDate): Program {
+  if (program.steps[program.schedule.cursor]?.kind !== 'rest') {
+    throw new DomainError("Seul un repos peut être sauté pour avancer la séance suivante.");
+  }
+  const cursor = nextWorkoutIndex(program);
+  if (cursor === undefined) throw new DomainError('Ce programme ne contient aucune séance à avancer.');
+  return { ...program, schedule: { cursor, anchor: effectiveAnchor(program.schedule, today) } };
+}
+
 /** Valider un repos n'a de sens que si l'étape courante est un repos. */
 export function validateRest(program: Program, today: LocalDate): Program {
   if (program.steps[program.schedule.cursor]?.kind !== 'rest') {

@@ -88,3 +88,19 @@ export function assertValidPlannedExercise(planned: PlannedExercise): void {
   if (planned.target.kind === 'range') rangeTarget(planned.target.min, planned.target.max);
   else fixedTarget(planned.target.value);
 }
+
+/**
+ * Déplace un exercice dans une séance (ordre d'exécution).
+ * Le programme seul change : une séance déjà commencée garde son ordre.
+ */
+export function moveExercise(step: WorkoutStep, plannedId: string, toIndex: number): WorkoutStep {
+  const from = step.exercises.findIndex((e) => e.id === plannedId);
+  if (from === -1) throw new DomainError('Exercice introuvable dans la séance.');
+  if (!Number.isInteger(toIndex) || toIndex < 0 || toIndex >= step.exercises.length) {
+    throw new DomainError('Position invalide.');
+  }
+  const exercises = [...step.exercises];
+  const [moved] = exercises.splice(from, 1);
+  exercises.splice(toIndex, 0, moved!);
+  return { ...step, exercises };
+}

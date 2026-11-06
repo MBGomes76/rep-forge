@@ -3,7 +3,7 @@ import { fixedTarget, rangeTarget, type Exercise, type PlannedExercise, type Rep
 import { useState } from 'react';
 import { Navigate, useParams } from 'react-router';
 import { useApp } from '../../app-context';
-import { NameField, Stepper } from '../../components/form';
+import { MoveButtons, NameField, Stepper } from '../../components/form';
 import { PlusIcon, TrashIcon } from '../../components/icons';
 import { Screen } from '../../components/screen';
 import { useAction } from '../../components/toaster';
@@ -70,10 +70,13 @@ export function SessionEditScreen() {
           </Card>
         )}
 
-        {step.exercises.map((planned) => (
+        {step.exercises.map((planned, index) => (
           <PlannedExerciseCard
             key={planned.id}
             planned={planned}
+            index={index}
+            count={step.exercises.length}
+            onMove={(to) => void run(() => useCases.moveExercise(program.id, step.id, planned.id, to))}
             exercise={exerciseOf(planned)}
             onChange={(patch) => void run(() => useCases.updatePlannedExercise(program.id, step.id, planned.id, patch))}
             onRemove={() => void run(() => useCases.removePlannedExercise(program.id, step.id, planned.id))}
@@ -93,12 +96,15 @@ export function SessionEditScreen() {
 
 interface PlannedExerciseCardProps {
   planned: PlannedExercise;
+  index: number;
+  count: number;
+  onMove: (toIndex: number) => void;
   exercise: Exercise | undefined;
   onChange: (patch: Partial<Pick<PlannedExercise, 'sets' | 'target' | 'restSeconds'>>) => void;
   onRemove: () => void;
 }
 
-function PlannedExerciseCard({ planned, exercise, onChange, onRemove }: PlannedExerciseCardProps) {
+function PlannedExerciseCard({ planned, index, count, onMove, exercise, onChange, onRemove }: PlannedExerciseCardProps) {
   const isDuration = exercise?.inputKind === 'duration';
   const { target } = planned;
   const isRange = target.kind === 'range';
@@ -119,6 +125,7 @@ function PlannedExerciseCard({ planned, exercise, onChange, onRemove }: PlannedE
               {exercise?.loadConvention}
             </Box>
           </Box>
+          {count > 1 && <MoveButtons itemLabel={name} index={index} count={count} onMove={onMove} />}
           <IconButton label={`Retirer ${name}`} onClick={onRemove}>
             <TrashIcon size={20} />
           </IconButton>

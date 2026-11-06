@@ -1,5 +1,6 @@
 import {
   addSet as addSetToWorkout,
+  advanceNextWorkout,
   addStep as addStepToProgram,
   adjustRest,
   assertValidPlannedExercise,
@@ -14,6 +15,8 @@ import {
   previousForSet,
   previousPerformance,
   recordSet,
+  moveExercise as moveExerciseInStep,
+  moveStep as moveStepInProgram,
   removeStep as removeStepFromProgram,
   replaceStep,
   resolveSetInput,
@@ -106,6 +109,12 @@ export function createUseCases(deps: Dependencies) {
     async bringBackActive(): Promise<void> {
       const program = await requireActiveProgram();
       await programs.save(bringBackToToday(program, today()));
+    },
+
+    /** Saute le repos courant : la séance suivante est prévue à sa place. */
+    async advanceActiveWorkout(): Promise<void> {
+      const program = await requireActiveProgram();
+      await programs.save(advanceNextWorkout(program, today()));
     },
 
     async validateActiveRest(): Promise<void> {
@@ -247,6 +256,16 @@ export function createUseCases(deps: Dependencies) {
 
     async removeStep(programId: string, stepId: string): Promise<void> {
       await updateProgram(programId, (program) => removeStepFromProgram(program, stepId));
+    },
+
+    /** Change la place d'une étape dans le cycle. L'étape courante reste la même. */
+    async moveStep(programId: string, stepId: string, toIndex: number): Promise<void> {
+      await updateProgram(programId, (program) => moveStepInProgram(program, stepId, toIndex));
+    },
+
+    /** Change la place d'un exercice dans une séance du programme. */
+    async moveExercise(programId: string, stepId: string, plannedId: string, toIndex: number): Promise<void> {
+      await updateWorkoutStep(programId, stepId, (step) => moveExerciseInStep(step, plannedId, toIndex));
     },
 
     async renameStep(programId: string, stepId: string, name: string): Promise<void> {

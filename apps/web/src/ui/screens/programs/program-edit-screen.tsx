@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router';
 import { useApp } from '../../app-context';
 import { ConfirmDialog } from '../../components/confirm-dialog';
-import { NameField } from '../../components/form';
+import { MoveButtons, NameField } from '../../components/form';
 import { ChevronRightIcon, TrashIcon } from '../../components/icons';
 import { Screen } from '../../components/screen';
 import { useAction } from '../../components/toaster';
@@ -22,6 +22,7 @@ export function ProgramEditScreen() {
   const { useCases } = useApp();
   const run = useAction();
   const [pending, setPending] = useState<PendingDeletion>(null);
+  const [reordering, setReordering] = useState(false);
 
   if (program === null) return <Navigate to="/programmes" replace />;
   if (program === undefined) return <Screen title="Programme" backTo="/programmes">{null}</Screen>;
@@ -57,28 +58,49 @@ export function ProgramEditScreen() {
               <StepRow
                 step={step}
                 index={i}
+                reordering={reordering}
                 onOpen={() => navigate(`/programmes/${program.id}/seances/${step.id}`)}
               />
-              <IconButton
-                label={`Supprimer l’étape ${i + 1} (${step.name})`}
-                onClick={() =>
-                  step.kind === 'rest' ? void run(() => useCases.removeStep(program.id, step.id)) : setPending({ kind: 'step', step })
-                }
-              >
-                <TrashIcon size={20} />
-              </IconButton>
+              {reordering ? (
+                <MoveButtons
+                  itemLabel={`l’étape ${i + 1} (${step.name})`}
+                  index={i}
+                  count={program.steps.length}
+                  onMove={(to) => void run(() => useCases.moveStep(program.id, step.id, to))}
+                />
+              ) : (
+                <IconButton
+                  label={`Supprimer l’étape ${i + 1} (${step.name})`}
+                  onClick={() =>
+                    step.kind === 'rest' ? void run(() => useCases.removeStep(program.id, step.id)) : setPending({ kind: 'step', step })
+                  }
+                >
+                  <TrashIcon size={20} />
+                </IconButton>
+              )}
             </Flex>
           ))}
         </Stack>
 
-        <Flex gap="2">
-          <AppButton variant="ghost" small onClick={() => run(() => useCases.addStep(program.id, 'workout'))}>
-            + Entraînement
+        {reordering ? (
+          <AppButton small onClick={() => setReordering(false)}>
+            Terminer
           </AppButton>
-          <AppButton variant="ghost" small onClick={() => run(() => useCases.addStep(program.id, 'rest'))}>
-            + Repos
-          </AppButton>
-        </Flex>
+        ) : (
+          <Flex gap="2" wrap="wrap">
+            <AppButton variant="ghost" small flex="1" w="auto" onClick={() => run(() => useCases.addStep(program.id, 'workout'))}>
+              + Entraînement
+            </AppButton>
+            <AppButton variant="ghost" small flex="1" w="auto" onClick={() => run(() => useCases.addStep(program.id, 'rest'))}>
+              + Repos
+            </AppButton>
+            {program.steps.length > 1 && (
+              <AppButton variant="ghost" small onClick={() => setReordering(true)}>
+                Réorganiser les étapes
+              </AppButton>
+            )}
+          </Flex>
+        )}
 
         {program.id !== activeId && (
           <AppButton onClick={() => run(() => useCases.activateProgram(program.id), `Programme activé : ${program.name}`)}>
@@ -156,7 +178,25 @@ const rowStyle = {
   textAlign: 'left',
 } as const;
 
-function StepRow({ step, index, onOpen }: { step: ProgramStep; index: number; onOpen: () => void }) {
+interface StepRowProps {
+  step: ProgramStep;
+  index: number;
+  /** En mode réorganisation, la ligne n'ouvre pas la séance (évite un tap involontaire). */
+  reordering: boolean;
+  onOpen: () => void;
+}
+
+function StepRow({ step, index, reordering, onOpen }: StepRowProps) {
+  if (step.kind === 'workout' && reordering) {
+    return (
+      <Box {...rowStyle}>
+        <StepNumber n={index + 1} workout />
+        <Box flex="1" minW="0" fontSize="16px" fontWeight="600" truncate>
+          {step.name || 'Sans nom'}
+        </Box>
+      </Box>
+    );
+  }
   if (step.kind === 'rest') {
     return (
       <Box {...rowStyle} borderStyle="dashed">

@@ -74,3 +74,43 @@ describe('programmes', () => {
     expect((await app.deps.programs.list()).map((p) => p.name)).toEqual(['PPL · cycle de 5 jours']);
   });
 });
+
+describe('réorganiser', () => {
+  it('monte un exercice ajouté en dernier à la deuxième place', async () => {
+    const user = userEvent.setup();
+    const { app } = renderApp('/programmes');
+    const [fullBody] = await screen.findAllByRole('button', { name: 'Modifier' });
+    await user.click(fullBody!);
+    await user.click(await screen.findByRole('button', { name: /Full body A.*exercice/ }));
+
+    // Ordre initial : Squat, Développé couché, Rowing barre.
+    await user.click(await screen.findByRole('button', { name: 'Monter Rowing barre' }));
+    await waitFor(async () => {
+      const program = (await app.deps.programs.list()).find((p) => p.name === 'Full body · 3 jours');
+      const step = program?.steps[0];
+      expect(step?.kind === 'workout' && step.exercises.map((e) => e.exerciseId)).toEqual([
+        'back-squat',
+        'barbell-row',
+        'bench-press',
+      ]);
+    });
+    expect((screen.getByRole('button', { name: 'Monter Squat (barre)' }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('déplace une étape du cycle en mode réorganisation, sans changer l’étape courante', async () => {
+    const user = userEvent.setup();
+    const { app } = renderApp('/programmes');
+    const [, ppl] = await screen.findAllByRole('button', { name: 'Modifier' });
+    await user.click(ppl!);
+    await user.click(await screen.findByRole('button', { name: 'Réorganiser les étapes' }));
+    await user.click(screen.getByRole('button', { name: 'Descendre l’étape 1 (Push)' }));
+
+    await waitFor(async () => {
+      const program = (await app.deps.programs.list()).find((p) => p.name.startsWith('PPL'));
+      expect(program?.steps.map((s) => s.name)).toEqual(['Pull', 'Push', 'Repos', 'Jambes', 'Repos']);
+      expect(program?.steps[program.schedule.cursor]?.name).toBe('Push');
+    });
+    await user.click(screen.getByRole('button', { name: 'Terminer' }));
+    expect(screen.getByRole('button', { name: 'Réorganiser les étapes' })).toBeTruthy();
+  });
+});

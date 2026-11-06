@@ -13,3 +13,5 @@
 **Alternative écartée.** Stocker la liste des reports : à recalculer à chaque affichage, et deux appareils hors ligne produiraient deux listes à fusionner. Ici, un conflit porte sur une seule valeur, facile à présenter à l'utilisateur.
 
 **Détail.** Quand une étape est supprimée ou déplacée, `cursor` suit l'identifiant de l'étape courante pour ne pas sauter d'étape par accident.
+
+**Avancer une séance** (ajout). Inverse du report, proposé quand l'étape courante est un repos : le ou les repos sont sautés (ils ne comptent pas comme faits) et la prochaine séance prend leur date prévue : `cursor = prochain entraînement`, `anchor` inchangé (effectif). Toutes les étapes suivantes arrivent un jour plus tôt. Une seule valeur change de plus, comme pour le report.

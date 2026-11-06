@@ -29,3 +29,19 @@ describe('accueil', () => {
     expect(screen.getByRole('list', { name: 'Étapes du cycle' })).toBeTruthy();
   });
 });
+
+describe('avancer la séance', () => {
+  it('un jour de repos, avance la séance suivante à aujourd’hui', async () => {
+    const user = userEvent.setup();
+    const { app } = renderApp('/');
+    await screen.findByText('PPL · cycle de 5 jours');
+    const id = await app.deps.settings.getActiveProgramId();
+    const program = (await app.deps.programs.get(id!))!;
+    await app.deps.programs.save({ ...program, schedule: { ...program.schedule, cursor: 2 } }); // Repos
+
+    await user.click(await screen.findByRole('button', { name: "Avancer Jambes à aujourd’hui" }));
+    expect(await screen.findByRole('button', { name: /Démarrer l'entraînement/ })).toBeTruthy();
+    expect(screen.getByRole('listitem', { name: /aujourd’hui : Jambes/ })).toBeTruthy();
+    expect(screen.getByText('Étape 4 sur 5')).toBeTruthy();
+  });
+});

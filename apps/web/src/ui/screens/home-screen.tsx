@@ -7,6 +7,7 @@ import {
   formatTarget,
   fromDate,
   nextStep,
+  nextWorkoutIndex,
   projectCalendar,
   summarizeWorkout,
   workoutDurationSeconds,
@@ -267,6 +268,8 @@ function NextStepCard({ program, today }: { program: Program; today: LocalDate }
 
   if (step.kind === 'rest') {
     const next = nextStep(program);
+    const workoutIndex = nextWorkoutIndex(program);
+    const nextWorkout = workoutIndex === undefined ? undefined : program.steps[workoutIndex];
     return (
       <Card>
         <Stack gap="3">
@@ -280,6 +283,17 @@ function NextStepCard({ program, today }: { program: Program; today: LocalDate }
           <AppButton onClick={() => run(() => useCases.validateActiveRest(), `Repos validé · prochaine étape : ${next?.name}`)}>
             Valider le repos
           </AppButton>
+          {nextWorkout && (
+            <AppButton
+              variant="ghost"
+              small
+              onClick={() =>
+                run(() => useCases.advanceActiveWorkout(), `Séance avancée : ${nextWorkout.name} · le cycle est décalé d’un jour plus tôt`)
+              }
+            >
+              Avancer {nextWorkout.name} à {plannedWhen(anchor, today)}
+            </AppButton>
+          )}
           {reportButtons}
         </Stack>
       </Card>

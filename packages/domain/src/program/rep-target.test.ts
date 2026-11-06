@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Exercise } from '../catalog/exercise';
 import { DomainError } from '../shared/domain-error';
-import { assertValidPlannedExercise, DEFAULT_EXERCISE_SETTINGS, planExercise } from './program';
+import { assertValidPlannedExercise, DEFAULT_EXERCISE_SETTINGS, moveExercise, planExercise, type WorkoutStep } from './program';
 import { fixedTarget, formatTarget, meetsTarget, rangeTarget } from './rep-target';
 
 const benchPress: Exercise = {
@@ -83,5 +83,29 @@ describe('valeurs par défaut d’un exercice ajouté', () => {
     expect(() =>
       assertValidPlannedExercise({ ...planned, target: { kind: 'range', min: 12, max: 8 } }),
     ).toThrow(DomainError);
+  });
+});
+
+describe('ordre des exercices d’une séance', () => {
+  const step: WorkoutStep = {
+    kind: 'workout',
+    id: 's',
+    name: 'Push',
+    exercises: ['a', 'b', 'c'].map((id) => ({ ...planExercise(id, benchPress), id })),
+  };
+  const order = (s: WorkoutStep) => s.exercises.map((e) => e.id);
+
+  it('déplace un exercice ajouté en dernier à la deuxième place', () => {
+    expect(order(moveExercise(step, 'c', 1))).toEqual(['a', 'c', 'b']);
+  });
+
+  it('déplace vers le bas et ne modifie pas la séance d’origine', () => {
+    expect(order(moveExercise(step, 'a', 2))).toEqual(['b', 'c', 'a']);
+    expect(order(step)).toEqual(['a', 'b', 'c']);
+  });
+
+  it('refuse une position ou un exercice invalide', () => {
+    expect(() => moveExercise(step, 'a', 3)).toThrow(DomainError);
+    expect(() => moveExercise(step, 'z', 0)).toThrow(DomainError);
   });
 });

@@ -1,6 +1,6 @@
 import { Box, chakra, Flex, Stack } from '@chakra-ui/react';
 import { useId, useState } from 'react';
-import { MinusIcon, PlusIcon } from './icons';
+import { ArrowDownIcon, ArrowUpIcon, MinusIcon, PlusIcon } from './icons';
 import { IconButton, Label, Num } from './ui';
 
 export const textInputStyle = {
@@ -70,5 +70,27 @@ export function Stepper({ label, value, onDecrement, onIncrement, canDecrement =
         </IconButton>
       </Flex>
     </Flex>
+  );
+}
+
+interface MoveButtonsProps {
+  /** Ce qui est déplacé, pour les lecteurs d'écran (« Push », « Squat (barre) »). */
+  itemLabel: string;
+  index: number;
+  count: number;
+  onMove: (toIndex: number) => void;
+}
+
+/** Monter / descendre un élément d'une liste ordonnée. Boutons désactivés aux extrémités. */
+export function MoveButtons({ itemLabel, index, count, onMove }: MoveButtonsProps) {
+  return (
+    <>
+      <IconButton label={`Monter ${itemLabel}`} disabled={index === 0} onClick={() => onMove(index - 1)}>
+        <ArrowUpIcon size={20} />
+      </IconButton>
+      <IconButton label={`Descendre ${itemLabel}`} disabled={index === count - 1} onClick={() => onMove(index + 1)}>
+        <ArrowDownIcon size={20} />
+      </IconButton>
+    </>
   );
 }
