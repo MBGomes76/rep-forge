@@ -9,3 +9,4 @@ Chaque fichier explique un choix : le contexte, la décision, et ses conséquenc
 | [0003](0003-dates-calendaires.md) | Dates calendaires `LocalDate` sans fuseau |
 | [0004](0004-planification-par-date-prevue.md) | Planification par « date prévue de l'étape courante » |
 | [0005](0005-seance-instantane.md) | Une séance démarrée est un instantané |
+| [0006](0006-architecture-front.md) | Architecture du front : couches, Dexie, lectures réactives |
