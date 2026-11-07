@@ -15,3 +15,4 @@ Chaque fichier explique un choix : le contexte, la décision, et ses conséquenc
 | [0009](0009-comptes-et-session.md) | Comptes sur invitation, session par cookie |
 | [0010](0010-synchronisation.md) | Synchronisation : état courant, versions, conflits explicites |
 | [0011](0011-format-des-documents.md) | Numéro de format des documents |
+| [0012](0012-pwa.md) | PWA : installable, ouverture hors ligne, mises à jour à la demande |

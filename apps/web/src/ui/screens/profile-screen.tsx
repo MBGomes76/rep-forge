@@ -12,6 +12,8 @@ import { AppButton, Card, Label } from '../components/ui';
 import { plural } from '../format';
 import { useAccount, useFinishedWorkouts, usePrograms, useSyncState, type SyncConflictView, type SyncState } from '../hooks/use-data';
 import { useOnlineStatus } from '../hooks/use-online-status';
+import { usePwa } from '../hooks/use-pwa';
+import { isIos, pwa } from '../../infrastructure/pwa';
 
 /** Profil : compte, état de la synchronisation, et conflits à résoudre. */
 export function ProfileScreen() {
@@ -30,6 +32,8 @@ export function ProfileScreen() {
         ))}
 
         {sync && <SyncCard state={sync} />}
+
+        <InstallCard />
 
         <Card>
           <Stack gap="1.5">
@@ -50,6 +54,10 @@ export function ProfileScreen() {
             </AppButton>
           </Stack>
         </Card>
+
+        <Box fontSize="12px" color="rf.muted" textAlign="center">
+          Version du {timeFormat.format(new Date(__BUILD_TIME__))}
+        </Box>
       </Stack>
 
       <ConfirmDialog
@@ -158,6 +166,42 @@ function ReconnectForm() {
         </AppButton>
       </Stack>
     </chakra.form>
+  );
+}
+
+// --- Installation ------------------------------------------------------------------
+
+/**
+ * Installer l'app sur l'écran d'accueil : icône, plein écran, ouverture sans
+ * réseau. Chrome et Android proposent un bouton ; sur iPhone, il faut passer
+ * par le menu Partager de Safari.
+ */
+function InstallCard() {
+  const { canInstall, installed } = usePwa();
+  if (installed) return null;
+  if (!canInstall && !isIos()) return null;
+
+  return (
+    <Card>
+      <Stack gap="2">
+        <Label>Application</Label>
+        <Box fontSize="16px" fontWeight="600">
+          Installer RepForge
+        </Box>
+        <Box fontSize="14px" color="rf.soft" lineHeight="1.45">
+          Une icône sur ton écran d’accueil, l’app en plein écran, et elle s’ouvre même sans réseau à la salle.
+        </Box>
+        {canInstall ? (
+          <AppButton small mt="1" onClick={() => void pwa.install()}>
+            Installer l’application
+          </AppButton>
+        ) : (
+          <Box fontSize="14px" color="rf.muted" lineHeight="1.45">
+            Sur iPhone : dans Safari, touche Partager, puis « Sur l’écran d’accueil ».
+          </Box>
+        )}
+      </Stack>
+    </Card>
   );
 }
 

@@ -4,8 +4,11 @@ import { NavLink, useNavigate } from 'react-router';
 import { plural } from '../format';
 import { useSyncState, type SyncState } from '../hooks/use-data';
 import { useOnlineStatus } from '../hooks/use-online-status';
+import { usePwa } from '../hooks/use-pwa';
+import { pwa } from '../../infrastructure/pwa';
+
 import { BackIcon, HistoryIcon, HomeIcon, ProfileIcon, ProgramsIcon } from './icons';
-import { IconButton } from './ui';
+import { AppButton, IconButton } from './ui';
 
 interface ScreenProps {
   title: string;
@@ -36,6 +39,7 @@ export function Screen({ title, backTo, footer = 'nav', children }: ScreenProps)
         </Heading>
         <SaveStatus />
       </Flex>
+      <UpdateBanner />
 
       <Box as="main" flex="1" minH="0" overflowY="auto" px="4" pt="1" pb="6">
         {children}
@@ -77,6 +81,25 @@ function SaveStatus() {
       <Box w="8px" h="8px" borderRadius="full" bg={tone === 'ok' ? 'rf.accent' : tone === 'warn' ? 'rf.amber' : 'rf.muted'} />
       {label}
     </chakra.button>
+  );
+}
+
+/**
+ * Nouvelle version de l'app téléchargée : on la propose, sans jamais recharger
+ * de force (une séance pourrait être en cours de saisie).
+ */
+function UpdateBanner() {
+  const { needRefresh } = usePwa();
+  if (!needRefresh) return null;
+  return (
+    <Flex role="status" flex="none" align="center" gap="3" mx="4" mb="2" px="3.5" py="2" bg="rf.doneBg" borderWidth="1px" borderColor="rf.doneBorder" borderRadius="control">
+      <Box flex="1" fontSize="14px" fontWeight="600">
+        Nouvelle version disponible
+      </Box>
+      <AppButton small w="auto" onClick={() => void pwa.update()}>
+        Mettre à jour
+      </AppButton>
+    </Flex>
   );
 }
 

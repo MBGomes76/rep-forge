@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react';
 import { RouterProvider } from 'react-router';
 import { AppProvider, useApp } from '../ui/app-context';
 import { useAccount } from '../ui/hooks/use-data';
+import { usePwa } from '../ui/hooks/use-pwa';
+import { pwa } from '../infrastructure/pwa';
 import { useNow } from '../ui/hooks/use-now';
-import { Toaster } from '../ui/components/toaster';
+import { notify, Toaster } from '../ui/components/toaster';
 import { createApp, type AppContainer } from './composition';
 import { createRouter } from './router';
 import { SyncAgent } from './sync-agent';
@@ -30,6 +32,7 @@ export function App({ app = defaultApp }: { app?: AppContainer }) {
       <AppProvider app={app}>
         {ready && <RouterProvider router={router} />}
         {ready && <SignedInServices />}
+        <OfflineReadyNotice />
         <Toaster />
       </AppProvider>
     </ChakraProvider>
@@ -58,5 +61,16 @@ function RestSettler() {
   useEffect(() => {
     void useCases.settleRests();
   }, [useCases, today]);
+  return null;
+}
+
+/** Première visite : on prévient une fois que l'app s'ouvrira désormais sans réseau. */
+function OfflineReadyNotice() {
+  const { offlineReady } = usePwa();
+  useEffect(() => {
+    if (!offlineReady) return;
+    notify('RepForge est prête à fonctionner hors ligne.');
+    pwa.dismissOfflineReady();
+  }, [offlineReady]);
   return null;
 }
