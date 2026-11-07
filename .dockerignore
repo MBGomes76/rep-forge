@@ -1,0 +1,11 @@
+# Contexte de construction de l'image (deploy/Dockerfile) : seulement le code source.
+.git
+**/node_modules
+**/dist
+**/coverage
+apps/api/vendor
+apps/api/var
+**/.env.local
+**/.env.*.local
+deploy/.env
+deploy/backups

@@ -16,3 +16,4 @@ Chaque fichier explique un choix : le contexte, la décision, et ses conséquenc
 | [0010](0010-synchronisation.md) | Synchronisation : état courant, versions, conflits explicites |
 | [0011](0011-format-des-documents.md) | Numéro de format des documents |
 | [0012](0012-pwa.md) | PWA : installable, ouverture hors ligne, mises à jour à la demande |
+| [0013](0013-deploiement.md) | Déploiement : Docker Compose sur un serveur, FrankenPHP |

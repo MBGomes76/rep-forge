@@ -1,0 +1,74 @@
+# Production : un seul serveur, trois services.
+# Utilisation (depuis ce dossier) : voir docs/deploiement.md et deploy.sh.
+name: repforge
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    restart: unless-stopped
+    environment:
+      SERVER_NAME: ${DOMAIN:?définir DOMAIN dans deploy/.env}
+      APP_SECRET: ${APP_SECRET:?définir APP_SECRET dans deploy/.env}
+      APP_FRONT_URL: https://${DOMAIN}
+      # Moindre privilège (ADR 0008) : l'application lit et écrit, seules les migrations modifient le schéma.
+      DATABASE_URL: postgresql://repforge_user:${DB_USER_PASSWORD}@db:5432/repforge?serverVersion=18&charset=utf8
+      DATABASE_ADMIN_URL: postgresql://repforge_admin:${DB_ADMIN_PASSWORD}@db:5432/repforge?serverVersion=18&charset=utf8
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp" # HTTP/3
+    volumes:
+      - caddy_data:/data # certificats HTTPS : à garder, sinon Let's Encrypt est redemandé à chaque fois
+      - caddy_config:/config
+      - sessions:/app/var/sessions # les sessions survivent aux déploiements : personne n'est déconnecté
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      # Super-utilisateur PostgreSQL : sert uniquement à créer les deux rôles au premier démarrage.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?définir POSTGRES_PASSWORD dans deploy/.env}
+      DB_ADMIN_PASSWORD: ${DB_ADMIN_PASSWORD:?définir DB_ADMIN_PASSWORD dans deploy/.env}
+      DB_USER_PASSWORD: ${DB_USER_PASSWORD:?définir DB_USER_PASSWORD dans deploy/.env}
+    volumes:
+      - pgdata:/var/lib/postgresql
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d repforge"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    # Pas de port publié : la base n'est joignable que depuis l'application.
+
+  # Sauvegarde chaque nuit, 14 jours conservés, dans deploy/backups (voir docs/deploiement.md pour restaurer).
+  backup:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      PGPASSWORD: ${DB_ADMIN_PASSWORD}
+    entrypoint:
+      - sh
+      - -c
+      - |
+        while true; do
+          pg_dump -h db -U repforge_admin -Fc repforge > /backups/repforge-$$(date +%F).dump \
+            && echo "Sauvegarde $$(date +%F) faite"
+          find /backups -name 'repforge-*.dump' -mtime +14 -delete
+          sleep 86400
+        done
+    volumes:
+      - ./backups:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
+  sessions:
