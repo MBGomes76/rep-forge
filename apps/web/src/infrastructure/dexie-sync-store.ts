@@ -146,8 +146,11 @@ export function dexieSyncStore(db: RepForgeDb): SyncStore {
       const record = await db.conflicts.get(keyOf(collection, id));
       return record && { collection: record.collection, id: record.id, remote: record.remote as RemoteDocument };
     },
+    conflicts: async () =>
+      (await db.conflicts.orderBy('key').toArray()).map(({ collection, id, remote }) => ({ collection, id, remote: remote as RemoteDocument })),
     removeConflict: (collection, id) => db.conflicts.delete(keyOf(collection, id)).then(() => undefined),
 
+    status: async () => ((await db.settings.get(STATUS))?.value as SyncStatus | undefined) ?? {},
     setStatus: (status: SyncStatus) => db.settings.put({ key: STATUS, value: status }).then(() => undefined),
   };
 }

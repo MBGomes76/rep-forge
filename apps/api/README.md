@@ -42,8 +42,11 @@ Les choix sont expliqués dans `docs/decisions/` (0007 à 0009).
    php bin/console doctrine:migrations:migrate
    composer db:test:reset   # base de test, mêmes droits
    composer test
-   symfony serve            # http://127.0.0.1:8000
+   symfony serve --no-tls --port=8000   # ou : php -S 127.0.0.1:8000 -t public public/index.php
    ```
+
+   Le front (`npm run dev` dans `apps/web`, http://localhost:5173) passe par un proxy Vite vers ce port :
+   même origine, donc le cookie de session suffit.
 
 ## Inviter quelqu'un
 

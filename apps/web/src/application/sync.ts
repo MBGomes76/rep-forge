@@ -79,12 +79,14 @@ export function createSync({ store, remote, now = () => new Date() }: { store: S
       await store.setStatus({ lastSyncedAt: now().toISOString() });
       return 'ok';
     } catch (error) {
+      // On garde l'heure de la dernière synchronisation réussie, affichée à l'utilisateur.
+      const { lastSyncedAt } = await store.status();
       if (!(error instanceof RemoteError)) {
-        await store.setStatus({ problem: 'error' });
+        await store.setStatus({ lastSyncedAt, problem: 'error' });
         throw error;
       }
       const outcome = error.kind === 'network' ? 'offline' : error.kind === 'unauthorized' ? 'unauthorized' : 'error';
-      await store.setStatus({ problem: outcome });
+      await store.setStatus({ lastSyncedAt, problem: outcome });
       return outcome;
     }
   }

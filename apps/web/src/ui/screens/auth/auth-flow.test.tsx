@@ -68,7 +68,7 @@ describe('déconnexion', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Se déconnecter' }));
     // Le bouton de confirmation, dans la boîte de dialogue.
-    await user.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Se déconnecter' }));
+    await user.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: /^Se déconnecter/ }));
 
     expect(await screen.findByRole('button', { name: 'Se connecter' })).toBeTruthy();
     await waitFor(async () => expect(await app.deps.programs.list()).toEqual([]));

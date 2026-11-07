@@ -1,6 +1,8 @@
 import { Box, chakra, Flex, Heading } from '@chakra-ui/react';
 import type { ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router';
+import { plural } from '../format';
+import { useSyncState, type SyncState } from '../hooks/use-data';
 import { useOnlineStatus } from '../hooks/use-online-status';
 import { BackIcon, HistoryIcon, HomeIcon, ProfileIcon, ProgramsIcon } from './icons';
 import { IconButton } from './ui';
@@ -45,17 +47,18 @@ export function Screen({ title, backTo, footer = 'nav', children }: ScreenProps)
 }
 
 /**
- * État de sauvegarde, toujours visible. À l'étape 2, tout est enregistré sur
- * l'appareil ; l'état de synchronisation avec le serveur viendra à l'étape 4.
+ * État de sauvegarde et de synchronisation, toujours visible. Tout est
+ * enregistré sur l'appareil dès la saisie ; le badge dit si c'est aussi parti
+ * sur le serveur. Un appui ouvre le détail (Profil).
  */
 function SaveStatus() {
-  const online = useOnlineStatus();
+  const { label, description, tone } = describeSync(useOnlineStatus(), useSyncState());
   const navigate = useNavigate();
   return (
     <chakra.button
       type="button"
       onClick={() => navigate('/profil')}
-      aria-label={`État de sauvegarde : ${online ? 'enregistré sur l’appareil' : 'hors ligne, enregistré sur l’appareil'}`}
+      aria-label={`État de sauvegarde : ${description}`}
       flex="none"
       h="44px"
       px="3"
@@ -71,10 +74,33 @@ function SaveStatus() {
       color="rf.text"
       cursor="pointer"
     >
-      <Box w="8px" h="8px" borderRadius="full" bg={online ? 'rf.accent' : 'rf.amber'} />
-      {online ? 'Enregistré' : 'Hors ligne'}
+      <Box w="8px" h="8px" borderRadius="full" bg={tone === 'ok' ? 'rf.accent' : tone === 'warn' ? 'rf.amber' : 'rf.muted'} />
+      {label}
     </chakra.button>
   );
+}
+
+interface SyncDescription {
+  readonly label: string;
+  readonly description: string;
+  readonly tone: 'ok' | 'busy' | 'warn';
+}
+
+/** Du plus important au moins important : ce qui demande une action d'abord. */
+export function describeSync(online: boolean, state: SyncState | undefined): SyncDescription {
+  const pending = state?.pending ?? 0;
+  const saved = 'enregistré sur l’appareil';
+  if (state?.conflicts.length) {
+    return { label: 'Conflit', description: `${plural(state.conflicts.length, 'conflit')} à résoudre`, tone: 'warn' };
+  }
+  if (state?.status.problem === 'unauthorized') {
+    return { label: 'Reconnexion', description: `session expirée, ${saved}`, tone: 'warn' };
+  }
+  if (!online || state?.status.problem === 'offline') {
+    return { label: 'Hors ligne', description: `hors ligne, ${saved}`, tone: 'warn' };
+  }
+  if (pending > 0) return { label: 'Envoi…', description: `${saved}, envoi en cours`, tone: 'busy' };
+  return { label: 'Synchronisé', description: `${saved} et synchronisé`, tone: 'ok' };
 }
 
 const tabs = [

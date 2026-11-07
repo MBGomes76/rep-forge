@@ -63,7 +63,9 @@ export interface SyncStore {
 
   addConflict(conflict: SyncConflict): Promise<void>;
   conflict(collection: Collection, id: string): Promise<SyncConflict | undefined>;
+  conflicts(): Promise<SyncConflict[]>;
   removeConflict(collection: Collection, id: string): Promise<void>;
 
+  status(): Promise<SyncStatus>;
   setStatus(status: SyncStatus): Promise<void>;
 }

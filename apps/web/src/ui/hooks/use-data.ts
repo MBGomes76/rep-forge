@@ -2,6 +2,7 @@ import type { CalendarHistoryEntry, Program, RestTimer, Workout } from '@repforg
 import { fromDate } from '@repforge/domain';
 import { useLiveQuery } from 'dexie-react-hooks';
 import type { Account } from '../../application/remote';
+import type { SyncConflict, SyncStatus } from '../../application/sync-store';
 import { useApp } from '../app-context';
 
 /**
@@ -65,4 +66,26 @@ export function useCalendarHistory(): CalendarHistoryEntry[] | undefined {
 export function useAccount(): Account | null | undefined {
   const { deps } = useApp();
   return useLiveQuery(async () => (await deps.settings.getAccount()) ?? null, [deps]);
+}
+
+export interface SyncConflictView extends SyncConflict {
+  /** Copie de l'appareil, `undefined` si supprimée localement. */
+  readonly local: unknown;
+}
+
+export interface SyncState {
+  readonly pending: number;
+  readonly conflicts: readonly SyncConflictView[];
+  readonly status: SyncStatus;
+}
+
+/** État de la synchronisation, mis à jour en direct. */
+export function useSyncState(): SyncState | undefined {
+  const { deps } = useApp();
+  return useLiveQuery(async () => {
+    const store = deps.syncStore;
+    const [pending, conflicts, status] = await Promise.all([store.pending(), store.conflicts(), store.status()]);
+    const withLocal = await Promise.all(conflicts.map(async (c) => ({ ...c, local: await store.readLocal(c.collection, c.id) })));
+    return { pending: pending.length, conflicts: withLocal, status };
+  }, [deps]);
 }
