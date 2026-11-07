@@ -6,7 +6,7 @@ import { renderApp } from '../../../test/render-app';
 describe('programmes', () => {
   it('crée un programme, compose une séance depuis le catalogue et l’active', async () => {
     const user = userEvent.setup();
-    const { app } = renderApp('/programmes');
+    const { app } = await renderApp('/programmes');
 
     await user.click(await screen.findByRole('button', { name: 'Nouveau programme' }));
     const name = await screen.findByRole('textbox', { name: 'Nom du programme' });
@@ -48,7 +48,7 @@ describe('programmes', () => {
 
   it('filtre le catalogue par matériel', async () => {
     const user = userEvent.setup();
-    renderApp('/programmes');
+    await renderApp('/programmes');
     await user.click(await screen.findByRole('button', { name: 'Nouveau programme' }));
     await user.click(await screen.findByRole('button', { name: '+ Entraînement' }));
     await user.click(await screen.findByRole('button', { name: /Séance 1.*exercice/ }));
@@ -63,7 +63,7 @@ describe('programmes', () => {
 
   it('supprime un programme après confirmation', async () => {
     const user = userEvent.setup();
-    const { app } = renderApp('/programmes');
+    const { app } = await renderApp('/programmes');
     // Liste triée par nom : « Full body » vient avant « PPL ».
     const [fullBody] = await screen.findAllByRole('button', { name: 'Modifier' });
     await user.click(fullBody!);
@@ -78,7 +78,7 @@ describe('programmes', () => {
 describe('réorganiser et supprimer', () => {
   it('monte un exercice ajouté en dernier à la deuxième place, via son menu', async () => {
     const user = userEvent.setup();
-    const { app } = renderApp('/programmes');
+    const { app } = await renderApp('/programmes');
     const [fullBody] = await screen.findAllByRole('button', { name: 'Modifier' });
     await user.click(fullBody!);
     await user.click(await screen.findByRole('button', { name: /Full body A.*exercice/ }));
@@ -101,7 +101,7 @@ describe('réorganiser et supprimer', () => {
 
   it('les exercices s’affichent repliés en résumé, un seul se déplie pour les réglages', async () => {
     const user = userEvent.setup();
-    renderApp('/programmes');
+    await renderApp('/programmes');
     const [fullBody] = await screen.findAllByRole('button', { name: 'Modifier' });
     await user.click(fullBody!);
     await user.click(await screen.findByRole('button', { name: /Full body A.*exercice/ }));
@@ -118,7 +118,7 @@ describe('réorganiser et supprimer', () => {
 
   it('supprime une séance depuis son menu, après confirmation', async () => {
     const user = userEvent.setup();
-    const { app } = renderApp('/programmes');
+    const { app } = await renderApp('/programmes');
     const [, ppl] = await screen.findAllByRole('button', { name: 'Modifier' });
     await user.click(ppl!);
     await user.click(await screen.findByRole('button', { name: 'Actions pour l’étape 4 (Jambes)' }));
@@ -133,7 +133,7 @@ describe('réorganiser et supprimer', () => {
 
   it('déplace une étape du cycle en mode réorganisation, sans changer l’étape courante', async () => {
     const user = userEvent.setup();
-    const { app } = renderApp('/programmes');
+    const { app } = await renderApp('/programmes');
     const [, ppl] = await screen.findAllByRole('button', { name: 'Modifier' });
     await user.click(ppl!);
     await user.click(await screen.findByRole('button', { name: 'Réorganiser les étapes' }));

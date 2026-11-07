@@ -1,6 +1,7 @@
 import type { CalendarHistoryEntry, Program, RestTimer, Workout } from '@repforge/domain';
 import { fromDate } from '@repforge/domain';
 import { useLiveQuery } from 'dexie-react-hooks';
+import type { Account } from '../../application/remote';
 import { useApp } from '../app-context';
 
 /**
@@ -58,4 +59,10 @@ export function useCalendarHistory(): CalendarHistoryEntry[] | undefined {
       ...rests.map((r) => ({ date: r.date, kind: 'rest' as const, name: r.name })),
     ];
   }, [deps]);
+}
+
+/** Compte connecté sur l'appareil ; `null` si personne n'est connecté. */
+export function useAccount(): Account | null | undefined {
+  const { deps } = useApp();
+  return useLiveQuery(async () => (await deps.settings.getAccount()) ?? null, [deps]);
 }

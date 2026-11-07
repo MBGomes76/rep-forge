@@ -16,7 +16,11 @@ export function App({ app = defaultApp }: { app?: AppContainer }) {
   const [router] = useState(createRouter);
 
   useEffect(() => {
-    void app.useCases.ensureInitialData().then(() => setReady(true));
+    // Sans compte, rien à préparer : l'écran de connexion s'en charge après la connexion.
+    void (async () => {
+      if (await app.account.getAccount()) await app.useCases.ensureInitialData();
+      setReady(true);
+    })();
   }, [app]);
 
   return (

@@ -7,6 +7,7 @@ import type {
   Transaction,
   WorkoutRepository,
 } from '../application/ports';
+import type { Account } from '../application/remote';
 import type { RepForgeDb, WorkoutRecord } from './db';
 
 /** Implémentations Dexie des ports de l'application. */
@@ -59,6 +60,7 @@ export function dexieRestDayRepository(db: RepForgeDb): RestDayRepository {
 
 const ACTIVE_PROGRAM = 'activeProgramId';
 const REST_TIMER = 'restTimer';
+const ACCOUNT = 'account';
 
 export function dexieSettingsRepository(db: RepForgeDb): SettingsRepository {
   async function read<T>(key: string): Promise<T | undefined> {
@@ -73,10 +75,17 @@ export function dexieSettingsRepository(db: RepForgeDb): SettingsRepository {
     setActiveProgramId: (id) => write(ACTIVE_PROGRAM, id),
     getRestTimer: () => read<RestTimer>(REST_TIMER),
     setRestTimer: (timer) => write(REST_TIMER, timer),
+    getAccount: () => read<Account>(ACCOUNT),
+    setAccount: (account) => write(ACCOUNT, account),
   };
 }
 
 /** Transaction Dexie sur toutes les tables : tout est écrit, ou rien. */
 export function dexieTransaction(db: RepForgeDb): Transaction {
   return (work) => db.transaction('rw', [db.programs, db.workouts, db.restDays, db.settings], work);
+}
+
+/** Vide toutes les tables (déconnexion : rien ne reste sur l'appareil). */
+export function dexieClearAll(db: RepForgeDb): () => Promise<void> {
+  return () => db.transaction('rw', db.tables, () => Promise.all(db.tables.map((table) => table.clear())).then(() => undefined));
 }

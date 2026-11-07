@@ -1,6 +1,7 @@
 import { createToaster, Portal, Toast, Toaster as ChakraToaster } from '@chakra-ui/react';
 import { DomainError } from '@repforge/domain';
 import { useCallback } from 'react';
+import { RemoteError } from '../../application/remote';
 
 /** Messages brefs (« Séance enregistrée », erreurs de saisie), au-dessus de la barre du bas. */
 export const toaster = createToaster({ placement: 'bottom', max: 2, offsets: { top: '16px', bottom: '96px', left: '16px', right: '16px' } });
@@ -37,8 +38,9 @@ export function Toaster() {
 }
 
 /**
- * Enveloppe une action : une règle métier violée (DomainError) s'affiche à
- * l'utilisateur ; une autre erreur est un bug, elle est signalée et relancée.
+ * Enveloppe une action : une règle métier violée (DomainError) ou un refus du
+ * serveur (RemoteError) s'affiche à l'utilisateur ; une autre erreur est un bug,
+ * elle est signalée et relancée.
  */
 export function useAction() {
   return useCallback(async <T,>(action: () => Promise<T>, success?: string): Promise<T | undefined> => {
@@ -47,7 +49,7 @@ export function useAction() {
       if (success) notify(success);
       return result;
     } catch (error) {
-      if (error instanceof DomainError) {
+      if (error instanceof DomainError || error instanceof RemoteError) {
         notify(error.message, 'error');
         return undefined;
       }

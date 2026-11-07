@@ -5,13 +5,13 @@ import { renderApp } from '../../test/render-app';
 
 describe('historique', () => {
   it('est vide au départ', async () => {
-    renderApp('/historique');
+    await renderApp('/historique');
     expect(await screen.findByText(/Aucun entraînement pour l'instant/)).toBeTruthy();
   });
 
   it('liste une séance terminée avec la meilleure série de chaque exercice', async () => {
     const user = userEvent.setup();
-    const { app } = renderApp('/');
+    const { app } = await renderApp('/');
     await screen.findByText('PPL · cycle de 5 jours');
 
     const workout = await app.useCases.startWorkout();

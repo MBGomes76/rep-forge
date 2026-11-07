@@ -1,9 +1,10 @@
 import type { Exercise, LocalDate, Program, RestTimer, Workout } from '@repforge/domain';
+import type { Account, RemoteApi } from './remote';
 
 /**
  * Ports : ce dont les cas d'utilisation ont besoin, sans dire comment c'est
- * fait. L'implémentation actuelle est Dexie (IndexedDB) ; l'étape 4 ajoutera
- * la synchronisation sans changer les cas d'utilisation.
+ * fait. Les données vivent dans Dexie (IndexedDB) ; la synchronisation avec
+ * le serveur se branche derrière ces ports, sans changer les cas d'utilisation.
  */
 
 export interface ProgramRepository {
@@ -41,6 +42,9 @@ export interface SettingsRepository {
   setActiveProgramId(id: string | undefined): Promise<void>;
   getRestTimer(): Promise<RestTimer | undefined>;
   setRestTimer(timer: RestTimer | undefined): Promise<void>;
+  /** Compte connecté sur cet appareil (connu même hors ligne). */
+  getAccount(): Promise<Account | undefined>;
+  setAccount(account: Account | undefined): Promise<void>;
 }
 
 export interface Catalog {
@@ -64,4 +68,7 @@ export interface Dependencies {
   /** Identifiants uniques générés sur l'appareil (UUID) : envois idempotents. */
   readonly newId: () => string;
   readonly transaction: Transaction;
+  readonly remote: RemoteApi;
+  /** Efface toutes les données de l'appareil (déconnexion). */
+  readonly clearLocalData: () => Promise<void>;
 }

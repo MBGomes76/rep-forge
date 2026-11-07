@@ -1,20 +1,24 @@
 import type { Dependencies } from '../application/ports';
+import type { RemoteApi } from '../application/remote';
+import { createAccountUseCases } from '../application/account';
 import { createUseCases } from '../application/use-cases';
 import { staticCatalog } from '../infrastructure/catalog-data';
 import { RepForgeDb } from '../infrastructure/db';
 import {
+  dexieClearAll,
   dexieProgramRepository,
   dexieRestDayRepository,
   dexieSettingsRepository,
   dexieTransaction,
   dexieWorkoutRepository,
 } from '../infrastructure/dexie-repositories';
+import { httpApi } from '../infrastructure/http-api';
 
 /**
  * Point d'assemblage unique : c'est ici, et seulement ici, qu'on choisit les
  * implémentations concrètes (Dexie, horloge système, UUID).
  */
-export function createDependencies(db: RepForgeDb = new RepForgeDb()): Dependencies {
+export function createDependencies(db: RepForgeDb = new RepForgeDb(), remote: RemoteApi = httpApi()): Dependencies {
   return {
     programs: dexieProgramRepository(db),
     workouts: dexieWorkoutRepository(db),
@@ -24,11 +28,14 @@ export function createDependencies(db: RepForgeDb = new RepForgeDb()): Dependenc
     clock: { now: () => new Date() },
     newId: () => crypto.randomUUID(),
     transaction: dexieTransaction(db),
+    remote,
+    clearLocalData: dexieClearAll(db),
   };
 }
 
 export function createApp(deps: Dependencies = createDependencies()) {
-  return { deps, useCases: createUseCases(deps) };
+  const useCases = createUseCases(deps);
+  return { deps, useCases, account: createAccountUseCases(deps, useCases) };
 }
 
 export type AppContainer = ReturnType<typeof createApp>;

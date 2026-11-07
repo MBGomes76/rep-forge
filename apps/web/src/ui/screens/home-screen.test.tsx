@@ -5,7 +5,7 @@ import { renderApp } from '../../test/render-app';
 
 describe('accueil', () => {
   it('affiche le programme actif et la séance prévue aujourd’hui', async () => {
-    renderApp('/');
+    await renderApp('/');
     expect(await screen.findByText('PPL · cycle de 5 jours')).toBeTruthy();
     expect(screen.getByText('Étape 1 sur 5')).toBeTruthy();
     expect(screen.getByText('Prévue aujourd’hui')).toBeTruthy();
@@ -14,7 +14,7 @@ describe('accueil', () => {
 
   it('une séance reportée ne se démarre pas : on peut l’avancer à aujourd’hui', async () => {
     const user = userEvent.setup();
-    renderApp('/');
+    await renderApp('/');
     await user.click(await screen.findByRole('button', { name: 'Reporter au lendemain' }));
     expect(await screen.findByText('Prévue demain')).toBeTruthy();
     expect(screen.queryByRole('button', { name: /Démarrer l'entraînement/ })).toBeNull();
@@ -26,7 +26,7 @@ describe('accueil', () => {
 
   it('bascule entre la vue Jours et la vue Cycle', async () => {
     const user = userEvent.setup();
-    renderApp('/');
+    await renderApp('/');
     expect(await screen.findByRole('list', { name: 'Calendrier des prochains jours' })).toBeTruthy();
     await user.click(screen.getByRole('button', { name: 'Cycle' }));
     expect(screen.getByRole('list', { name: 'Étapes du cycle' })).toBeTruthy();
@@ -36,7 +36,7 @@ describe('accueil', () => {
 describe('jour de repos', () => {
   it('pas de validation du repos : on avance la séance suivante à aujourd’hui', async () => {
     const user = userEvent.setup();
-    const { app } = renderApp('/');
+    const { app } = await renderApp('/');
     await screen.findByText('PPL · cycle de 5 jours');
     const id = await app.deps.settings.getActiveProgramId();
     const program = (await app.deps.programs.get(id!))!;

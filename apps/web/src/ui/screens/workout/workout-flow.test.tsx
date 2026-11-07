@@ -5,7 +5,7 @@ import { renderApp } from '../../../test/render-app';
 
 async function startPush() {
   const user = userEvent.setup();
-  const rendered = renderApp('/');
+  const rendered = await renderApp('/');
   await user.click(await screen.findByRole('button', { name: /Démarrer l'entraînement/ }));
   await screen.findByRole('textbox', { name: 'kg de la série 1 · Développé couché (barre)' });
   return { user, ...rendered };

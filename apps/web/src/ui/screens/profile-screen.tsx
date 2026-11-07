@@ -1,18 +1,21 @@
 import { Box, Stack } from '@chakra-ui/react';
+import { useState } from 'react';
+import { useApp } from '../app-context';
+import { ConfirmDialog } from '../components/confirm-dialog';
 import { Screen } from '../components/screen';
-import { Card, Label } from '../components/ui';
+import { AppButton, Card, Label } from '../components/ui';
 import { plural } from '../format';
-import { useFinishedWorkouts, usePrograms } from '../hooks/use-data';
+import { useAccount, useFinishedWorkouts, usePrograms } from '../hooks/use-data';
 import { useOnlineStatus } from '../hooks/use-online-status';
 
-/**
- * Profil et état de sauvegarde. Les comptes (étape 3) et la synchronisation
- * (étape 4) ne sont pas encore là : l'écran dit ce qui est vrai aujourd'hui.
- */
+/** Profil : compte connecté et état de sauvegarde. */
 export function ProfileScreen() {
   const online = useOnlineStatus();
   const programs = usePrograms();
   const workouts = useFinishedWorkouts();
+  const account = useAccount();
+  const app = useApp();
+  const [confirmLogout, setConfirmLogout] = useState(false);
 
   return (
     <Screen title="Profil">
@@ -20,12 +23,15 @@ export function ProfileScreen() {
         <Card>
           <Stack gap="1.5">
             <Label>Compte</Label>
-            <Box fontSize="16px" fontWeight="600">
-              Accès sur invitation
+            <Box fontSize="16px" fontWeight="600" wordBreak="break-all">
+              {account?.email}
             </Box>
             <Box fontSize="14px" color="rf.muted" lineHeight="1.45">
-              La connexion arrive bientôt. Tes programmes et ton historique resteront privés par défaut.
+              Tes programmes et ton historique sont privés : toi seul y as accès.
             </Box>
+            <AppButton variant="ghost" small mt="2" onClick={() => setConfirmLogout(true)}>
+              Se déconnecter
+            </AppButton>
           </Stack>
         </Card>
 
@@ -47,6 +53,18 @@ export function ProfileScreen() {
           </Stack>
         </Card>
       </Stack>
+
+      <ConfirmDialog
+        open={confirmLogout}
+        title="Se déconnecter ?"
+        description="Toutes tes données seront effacées de cet appareil. Elles restent sur ton compte : tu les retrouveras en te reconnectant."
+        confirmLabel="Se déconnecter"
+        onConfirm={() => {
+          setConfirmLogout(false);
+          void app.account.logout();
+        }}
+        onCancel={() => setConfirmLogout(false)}
+      />
     </Screen>
   );
 }

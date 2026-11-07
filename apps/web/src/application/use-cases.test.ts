@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { createApp, createDependencies, type AppContainer } from '../app/composition';
 import { staticCatalog } from '../infrastructure/catalog-data';
 import { RepForgeDb } from '../infrastructure/db';
+import { FakeServer } from '../test/fake-remote';
 import { PROGRAM_TEMPLATES } from './program-templates';
 
 /** Horloge pilotable : les tests avancent le temps à la main. */
@@ -31,7 +32,7 @@ async function activeProgram(): Promise<Program> {
 beforeEach(async () => {
   clock = testClock('2026-11-06T18:00:00');
   let n = 0;
-  const deps = { ...createDependencies(new RepForgeDb(`test-${++dbCount}`)), clock, newId: () => `id-${++n}` };
+  const deps = { ...createDependencies(new RepForgeDb(`test-${++dbCount}`), new FakeServer().device()), clock, newId: () => `id-${++n}` };
   app = createApp(deps);
   await app.useCases.ensureInitialData();
 });
