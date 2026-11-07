@@ -128,16 +128,16 @@ function PlannedExerciseCard({ planned, exercise, editing, onToggle, index, coun
   const isDuration = exercise?.inputKind === 'duration';
   const name = exercise?.name ?? planned.exerciseId;
 
+  // Le menu ⋮ reste hors de la carte, aligné sur son en-tête (comme les étapes du programme).
   return (
-    <Card p="0" borderColor={editing ? 'rf.doneBorder' : 'rf.border'}>
-      <Flex align="center" gap="1" pr="2">
+    <Flex align="flex-start" gap="2">
+      <Card p="0" flex="1" minW="0" borderColor={editing ? 'rf.doneBorder' : 'rf.border'}>
         <chakra.button
           type="button"
           onClick={onToggle}
           aria-expanded={editing}
           aria-label={`${editing ? 'Replier' : 'Régler'} ${name}`}
-          flex="1"
-          minW="0"
+          w="100%"
           minH="64px"
           display="flex"
           alignItems="center"
@@ -145,7 +145,7 @@ function PlannedExerciseCard({ planned, exercise, editing, onToggle, index, coun
           textAlign="left"
           color="rf.text"
           cursor="pointer"
-          pl="4"
+          px="4"
           py="3"
         >
           <Box flex="1" minW="0">
@@ -166,6 +166,9 @@ function PlannedExerciseCard({ planned, exercise, editing, onToggle, index, coun
             <ChevronDownIcon size={18} />
           </Box>
         </chakra.button>
+        {editing && <PlannedExerciseSettings planned={planned} isDuration={isDuration} onChange={onChange} />}
+      </Card>
+      <Box mt="10px">
         <ActionMenu
           label={`Actions pour ${name}`}
           actions={[
@@ -174,9 +177,8 @@ function PlannedExerciseCard({ planned, exercise, editing, onToggle, index, coun
             { label: 'Retirer de la séance', icon: <TrashIcon size={18} />, danger: true, onSelect: onRemove },
           ]}
         />
-      </Flex>
-      {editing && <PlannedExerciseSettings planned={planned} isDuration={isDuration} onChange={onChange} />}
-    </Card>
+      </Box>
+    </Flex>
   );
 }
 
