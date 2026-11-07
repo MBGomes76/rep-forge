@@ -1,6 +1,7 @@
 import type { Dependencies } from '../application/ports';
 import type { RemoteApi } from '../application/remote';
 import { createAccountUseCases } from '../application/account';
+import { createSync } from '../application/sync';
 import { createUseCases } from '../application/use-cases';
 import { staticCatalog } from '../infrastructure/catalog-data';
 import { RepForgeDb } from '../infrastructure/db';
@@ -12,6 +13,7 @@ import {
   dexieTransaction,
   dexieWorkoutRepository,
 } from '../infrastructure/dexie-repositories';
+import { dexieSyncStore } from '../infrastructure/dexie-sync-store';
 import { httpApi } from '../infrastructure/http-api';
 
 /**
@@ -30,12 +32,14 @@ export function createDependencies(db: RepForgeDb = new RepForgeDb(), remote: Re
     transaction: dexieTransaction(db),
     remote,
     clearLocalData: dexieClearAll(db),
+    syncStore: dexieSyncStore(db),
   };
 }
 
 export function createApp(deps: Dependencies = createDependencies()) {
   const useCases = createUseCases(deps);
-  return { deps, useCases, account: createAccountUseCases(deps, useCases) };
+  const sync = createSync({ store: deps.syncStore, remote: deps.remote, now: () => deps.clock.now() });
+  return { deps, useCases, sync, account: createAccountUseCases(deps, useCases, sync) };
 }
 
 export type AppContainer = ReturnType<typeof createApp>;

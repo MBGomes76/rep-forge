@@ -18,3 +18,4 @@ export * from './workout/previous-performance';
 export * from './workout/recap';
 export * from './workout/rest-timer';
 export * from './workout/format';
+export * from './sync/sync-rules';

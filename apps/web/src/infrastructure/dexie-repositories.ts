@@ -9,8 +9,12 @@ import type {
 } from '../application/ports';
 import type { Account } from '../application/remote';
 import type { RepForgeDb, WorkoutRecord } from './db';
+import { markChanged, SYNCED_SETTING, trackedTables } from './dexie-sync-store';
 
-/** Implémentations Dexie des ports de l'application. */
+/**
+ * Implémentations Dexie des ports de l'application. Chaque écriture d'une
+ * donnée synchronisée la marque « à envoyer », dans la même transaction.
+ */
 
 function toWorkout({ state: _state, ...workout }: WorkoutRecord): Workout {
   return workout;
@@ -21,10 +25,16 @@ export function dexieProgramRepository(db: RepForgeDb): ProgramRepository {
     // Ordre alphabétique : prévisible (les identifiants sont des UUID aléatoires).
     list: async () => (await db.programs.toArray()).sort((a, b) => a.name.localeCompare(b.name, 'fr')),
     get: (id) => db.programs.get(id),
-    save: async (program: Program) => {
-      await db.programs.put(program);
-    },
-    delete: (id) => db.programs.delete(id),
+    save: (program: Program) =>
+      db.transaction('rw', db.programs, db.syncState, async () => {
+        await db.programs.put(program);
+        await markChanged(db, 'programs', program.id);
+      }),
+    delete: (id) =>
+      db.transaction('rw', db.programs, db.syncState, async () => {
+        await db.programs.delete(id);
+        await markChanged(db, 'programs', id);
+      }),
   };
 }
 
@@ -42,23 +52,31 @@ export function dexieWorkoutRepository(db: RepForgeDb): WorkoutRepository {
       const records = await db.workouts.where('state').equals('finished').toArray();
       return records.map(toWorkout).sort((a, b) => b.startedAt.localeCompare(a.startedAt));
     },
-    save: async (workout) => {
-      await db.workouts.put({ ...workout, state: workout.finishedAt === null ? 'in_progress' : 'finished' });
-    },
-    delete: (id) => db.workouts.delete(id),
+    save: (workout) =>
+      db.transaction('rw', db.workouts, db.syncState, async () => {
+        await db.workouts.put({ ...workout, state: workout.finishedAt === null ? 'in_progress' : 'finished' });
+        await markChanged(db, 'workouts', workout.id);
+      }),
+    delete: (id) =>
+      db.transaction('rw', db.workouts, db.syncState, async () => {
+        await db.workouts.delete(id);
+        await markChanged(db, 'workouts', id);
+      }),
   };
 }
 
 export function dexieRestDayRepository(db: RepForgeDb): RestDayRepository {
   return {
     list: () => db.restDays.toArray(),
-    add: async (restDay: RestDay) => {
-      await db.restDays.put(restDay);
-    },
+    add: (restDay: RestDay) =>
+      db.transaction('rw', db.restDays, db.syncState, async () => {
+        await db.restDays.put(restDay);
+        await markChanged(db, 'rest-days', restDay.id);
+      }),
   };
 }
 
-const ACTIVE_PROGRAM = 'activeProgramId';
+const ACTIVE_PROGRAM = SYNCED_SETTING;
 const REST_TIMER = 'restTimer';
 const ACCOUNT = 'account';
 
@@ -72,7 +90,11 @@ export function dexieSettingsRepository(db: RepForgeDb): SettingsRepository {
   }
   return {
     getActiveProgramId: () => read<string>(ACTIVE_PROGRAM),
-    setActiveProgramId: (id) => write(ACTIVE_PROGRAM, id),
+    setActiveProgramId: (id) =>
+      db.transaction('rw', db.settings, db.syncState, async () => {
+        await write(ACTIVE_PROGRAM, id);
+        await markChanged(db, 'settings', ACTIVE_PROGRAM);
+      }),
     getRestTimer: () => read<RestTimer>(REST_TIMER),
     setRestTimer: (timer) => write(REST_TIMER, timer),
     getAccount: () => read<Account>(ACCOUNT),
@@ -82,7 +104,7 @@ export function dexieSettingsRepository(db: RepForgeDb): SettingsRepository {
 
 /** Transaction Dexie sur toutes les tables : tout est écrit, ou rien. */
 export function dexieTransaction(db: RepForgeDb): Transaction {
-  return (work) => db.transaction('rw', [db.programs, db.workouts, db.restDays, db.settings], work);
+  return (work) => db.transaction('rw', trackedTables(db), work);
 }
 
 /** Vide toutes les tables (déconnexion : rien ne reste sur l'appareil). */

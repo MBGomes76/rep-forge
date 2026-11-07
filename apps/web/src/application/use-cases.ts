@@ -59,10 +59,24 @@ export function createUseCases(deps: Dependencies) {
     return workout;
   }
 
+  /**
+   * Lire, modifier, enregistrer : dans une transaction, pour que deux
+   * modifications rapprochées (frappe dans le nom + ajout d'étape) ne
+   * s'écrasent pas l'une l'autre.
+   */
   async function updateProgram(id: string, change: (program: Program) => Program): Promise<Program> {
-    const updated = change(await requireProgram(id));
-    await programs.save(updated);
-    return updated;
+    return transaction(async () => {
+      const updated = change(await requireProgram(id));
+      await programs.save(updated);
+      return updated;
+    });
+  }
+
+  /** Même garantie que `updateProgram`, pour deux taps rapprochés pendant une séance. */
+  async function updateWorkout(id: string, change: (workout: Workout) => Workout): Promise<void> {
+    await transaction(async () => {
+      await workouts.save(change(await requireWorkout(id)));
+    });
   }
 
   async function updateWorkoutStep(
@@ -156,43 +170,39 @@ export function createUseCases(deps: Dependencies) {
      * le minuteur de repos de l'exercice.
      */
     async validateSet(workoutId: string, workoutExerciseId: string, setId: string, input: SetInput): Promise<void> {
-      const workout = await requireWorkout(workoutId);
-      const exercise = workout.exercises.find((e) => e.id === workoutExerciseId);
-      if (!exercise) throw new DomainError('Exercice introuvable dans la séance.');
-      const setIndex = exercise.sets.findIndex((s) => s.id === setId);
-
-      const history = await workouts.listFinished();
-      const previous = previousPerformance(history, exercise.exerciseId, { excludeWorkoutId: workoutId });
-      const performance = resolveSetInput(exercise.inputKind, input, previousForSet(previous, setIndex));
-
-      const updated = recordSet(workout, workoutExerciseId, setId, performance);
-      const now = clock.now().getTime();
       await transaction(async () => {
-        await workouts.save(updated);
-        await settings.setRestTimer(startRest(workoutId, exercise.name, exercise.restSeconds, now));
+        const workout = await requireWorkout(workoutId);
+        const exercise = workout.exercises.find((e) => e.id === workoutExerciseId);
+        if (!exercise) throw new DomainError('Exercice introuvable dans la séance.');
+        const setIndex = exercise.sets.findIndex((s) => s.id === setId);
+
+        const history = await workouts.listFinished();
+        const previous = previousPerformance(history, exercise.exerciseId, { excludeWorkoutId: workoutId });
+        const performance = resolveSetInput(exercise.inputKind, input, previousForSet(previous, setIndex));
+
+        await workouts.save(recordSet(workout, workoutExerciseId, setId, performance));
+        await settings.setRestTimer(startRest(workoutId, exercise.name, exercise.restSeconds, clock.now().getTime()));
       });
     },
 
     async unvalidateSet(workoutId: string, workoutExerciseId: string, setId: string): Promise<void> {
-      const workout = await requireWorkout(workoutId);
-      await workouts.save(unrecordSet(workout, workoutExerciseId, setId));
+      await updateWorkout(workoutId, (workout) => unrecordSet(workout, workoutExerciseId, setId));
     },
 
     async addSet(workoutId: string, workoutExerciseId: string): Promise<void> {
-      const workout = await requireWorkout(workoutId);
-      await workouts.save(addSetToWorkout(workout, workoutExerciseId, newId()));
+      await updateWorkout(workoutId, (workout) => addSetToWorkout(workout, workoutExerciseId, newId()));
     },
 
     /** Termine la séance et fait avancer le cycle, en une seule écriture atomique. */
     async finishWorkout(workoutId: string): Promise<Workout> {
-      const finished = finishDomainWorkout(await requireWorkout(workoutId), nowIso());
-      await transaction(async () => {
+      return transaction(async () => {
+        const finished = finishDomainWorkout(await requireWorkout(workoutId), nowIso());
         await workouts.save(finished);
         const program = await programs.get(finished.programId);
         if (program) await programs.save(completeStepAfterWorkout(program, finished, today()));
         await clearRestTimerOf(workoutId);
+        return finished;
       });
-      return finished;
     },
 
     /** Abandonne une séance en cours : rien n'est enregistré, le cycle n'avance pas. */

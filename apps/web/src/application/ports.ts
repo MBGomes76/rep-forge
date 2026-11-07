@@ -1,5 +1,6 @@
 import type { Exercise, LocalDate, Program, RestTimer, Workout } from '@repforge/domain';
 import type { Account, RemoteApi } from './remote';
+import type { SyncStore } from './sync-store';
 
 /**
  * Ports : ce dont les cas d'utilisation ont besoin, sans dire comment c'est
@@ -71,4 +72,5 @@ export interface Dependencies {
   readonly remote: RemoteApi;
   /** Efface toutes les données de l'appareil (déconnexion). */
   readonly clearLocalData: () => Promise<void>;
+  readonly syncStore: SyncStore;
 }
