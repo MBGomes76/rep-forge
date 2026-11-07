@@ -1,8 +1,25 @@
-import { decidePull } from '@repforge/domain';
+import { decidePull, DocumentFormatTooNew, fromStoredDocument, toStoredDocument, type DocumentKind } from '@repforge/domain';
 import { COLLECTIONS, ConflictError, RemoteError, type Collection, type RemoteApi, type RemoteDocument } from './remote';
 import type { SyncEntry, SyncStore } from './sync-store';
 
-export type SyncOutcome = 'ok' | 'offline' | 'unauthorized' | 'error';
+export type SyncOutcome = 'ok' | 'offline' | 'unauthorized' | 'outdated' | 'error';
+
+const KINDS: Record<Collection, DocumentKind> = { programs: 'program', workouts: 'workout', 'rest-days': 'rest-day', settings: 'setting' };
+
+/**
+ * Document du serveur → format actuel de l'app (voir document-format). Un document
+ * venant d'une version plus récente de l'app arrête la synchronisation : rien
+ * n'est appliqué ni sauté, il sera relu après la mise à jour.
+ */
+function upgraded(collection: Collection, document: RemoteDocument): RemoteDocument {
+  if (document.deleted) return document;
+  try {
+    return { ...document, data: fromStoredDocument(KINDS[collection], document.data) };
+  } catch (error) {
+    if (error instanceof DocumentFormatTooNew) throw new RemoteError(error.message, 'outdated');
+    throw error;
+  }
+}
 export type ConflictChoice = 'mine' | 'theirs';
 
 /**
@@ -25,13 +42,13 @@ export function createSync({ store, remote, now = () => new Date() }: { store: S
         if (accepted) await store.acknowledge(entry, accepted);
       } catch (error) {
         if (!(error instanceof ConflictError)) throw error;
-        await store.addConflict({ collection: entry.collection, id: entry.id, remote: error.current });
+        await store.addConflict({ collection: entry.collection, id: entry.id, remote: upgraded(entry.collection, error.current) });
       }
     }
   }
 
   async function send(entry: SyncEntry, local: unknown): Promise<RemoteDocument | undefined> {
-    if (local !== undefined) return remote.put(entry.collection, entry.id, entry.version, local);
+    if (local !== undefined) return remote.put(entry.collection, entry.id, entry.version, toStoredDocument(local as object));
     // Supprimé avant d'avoir jamais été envoyé : le serveur n'a pas à le savoir.
     if (entry.version === 0) {
       await store.forget(entry.collection, entry.id);
@@ -55,7 +72,8 @@ export function createSync({ store, remote, now = () => new Date() }: { store: S
     }
   }
 
-  async function receive(collection: Collection, document: RemoteDocument): Promise<void> {
+  async function receive(collection: Collection, received: RemoteDocument): Promise<void> {
+    const document = upgraded(collection, received);
     const entry = await store.entry(collection, document.id);
     const local = await store.readLocal(collection, document.id);
     const decision = decidePull(entry, local, { version: document.version, data: document.deleted ? null : document.data });
@@ -85,7 +103,7 @@ export function createSync({ store, remote, now = () => new Date() }: { store: S
         await store.setStatus({ lastSyncedAt, problem: 'error' });
         throw error;
       }
-      const outcome = error.kind === 'network' ? 'offline' : error.kind === 'unauthorized' ? 'unauthorized' : 'error';
+      const outcome = error.kind === 'network' ? 'offline' : error.kind === 'rejected' ? 'error' : error.kind;
       await store.setStatus({ lastSyncedAt, problem: outcome });
       return outcome;
     }

@@ -31,6 +31,7 @@ export function httpApi(baseUrl = '/api'): RemoteApi {
     if (response.ok) return payload as T;
 
     if (response.status === 409 && payload.current) throw new ConflictError(payload.current);
+    if (response.status === 426) throw new RemoteError(payload.error ?? 'Mets l’application à jour.', 'outdated');
     if (response.status === 401 && path !== '/login') throw new RemoteError('Ta session a expiré. Reconnecte-toi.', 'unauthorized');
     if (response.status >= 500 || (response.status === 404 && !payload.error)) {
       throw new RemoteError('Le serveur ne répond pas correctement. Réessaie plus tard.', 'network');

@@ -29,7 +29,9 @@ export type RemoteErrorKind =
   /** Session absente ou expirée. */
   | 'unauthorized'
   /** Refusé par le serveur (données invalides, lien expiré…) : le message est affichable. */
-  | 'rejected';
+  | 'rejected'
+  /** Données écrites par une version plus récente de l'application : il faut la mettre à jour. */
+  | 'outdated';
 
 export class RemoteError extends Error {
   constructor(

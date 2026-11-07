@@ -93,6 +93,9 @@ export function describeSync(online: boolean, state: SyncState | undefined): Syn
   if (state?.conflicts.length) {
     return { label: 'Conflit', description: `${plural(state.conflicts.length, 'conflit')} à résoudre`, tone: 'warn' };
   }
+  if (state?.status.problem === 'outdated') {
+    return { label: 'Mise à jour', description: `application à mettre à jour, ${saved}`, tone: 'warn' };
+  }
   if (state?.status.problem === 'unauthorized') {
     return { label: 'Reconnexion', description: `session expirée, ${saved}`, tone: 'warn' };
   }

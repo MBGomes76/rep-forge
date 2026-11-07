@@ -7,6 +7,7 @@ namespace App\Tests\Unit\Domain\Sync;
 use App\Domain\Shared\DomainException;
 use App\Domain\Sync\Document;
 use App\Domain\Sync\DocumentType;
+use App\Domain\Sync\OutdatedClient;
 use App\Domain\Sync\VersionConflict;
 use App\Domain\Sync\WriteOutcome;
 use PHPUnit\Framework\TestCase;
@@ -106,6 +107,23 @@ final class DocumentTest extends TestCase
 
         $this->expectException(VersionConflict::class);
         $document->delete(1, $this->nextRevision(), $this->now);
+    }
+
+    public function testUneAncienneVersionDeLAppNEcrasePasUnDocumentPlusRecent(): void
+    {
+        $document = $this->created();
+        // Une version récente de l'app écrit au format 2, avec un champ que l'ancienne ne connaît pas.
+        $document->write([...self::program(), 'format' => 2, 'note' => 'Nouveau champ'], 1, $this->nextRevision(), $this->now);
+
+        try {
+            $document->write([...self::program('Ancienne app'), 'format' => 1], 2, $this->nextRevision(), $this->now);
+            self::fail('L’envoi aurait dû être refusé.');
+        } catch (OutdatedClient) {
+            self::assertSame('Nouveau champ', $document->data()['note'] ?? null);
+        }
+
+        // Le même format, ou un plus récent, passe normalement.
+        self::assertSame(WriteOutcome::Updated, $document->write([...self::program('Récente'), 'format' => 2], 2, $this->nextRevision(), $this->now));
     }
 
     public function testUneCreationNePeutPasPartirDUneVersionExistante(): void

@@ -6,6 +6,7 @@ namespace App\UI\Http\EventListener;
 
 use App\Domain\Shared\DomainException;
 use App\Domain\Shared\NotFound;
+use App\Domain\Sync\OutdatedClient;
 use App\Domain\Sync\VersionConflict;
 use App\UI\Http\DocumentView;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -39,7 +40,9 @@ final readonly class ApiExceptionListener
                 ['error' => $exception->getMessage(), 'current' => DocumentView::of($exception->current)],
                 Response::HTTP_CONFLICT,
             ),
-            $exception instanceof NotFound => new JsonResponse(['error' => $exception->getMessage()], Response::HTTP_NOT_FOUND),
+            // 426 : l'application doit être mise à jour pour continuer.
+            $exception instanceof OutdatedClient => new JsonResponse(['error' => $exception->getMessage()], Response::HTTP_UPGRADE_REQUIRED),
+            $exception instanceof NotFound =>new JsonResponse(['error' => $exception->getMessage()], Response::HTTP_NOT_FOUND),
             $exception instanceof DomainException => new JsonResponse(['error' => $exception->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY),
             $exception instanceof HttpExceptionInterface => new JsonResponse(
                 ['error' => $exception->getMessage() ?: Response::$statusTexts[$exception->getStatusCode()] ?? 'Erreur'],

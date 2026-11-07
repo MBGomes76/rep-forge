@@ -216,3 +216,32 @@ describe('session', () => {
     expect(await phoneA.app.deps.syncStore.pending()).toHaveLength(1);
   });
 });
+
+describe('format des documents', () => {
+  it('chaque document envoyé porte son numéro de format', async () => {
+    await phone();
+    for (const document of server.stored(account(), 'programs')) expect((document.data as { format?: number }).format).toBe(1);
+  });
+
+  it('un document écrit par une version plus récente de l’app : synchronisation arrêtée, rien d’écrasé', async () => {
+    const phoneA = await phone();
+    const program = await activeProgram(phoneA);
+
+    // Une version future de l'app (sur un autre appareil) enregistre le programme au format 2.
+    const future = server.device();
+    await future.login('moi@example.com', 'phrase-de-passe-solide');
+    const onServer = server.stored(account(), 'programs').find((d) => d.id === program.id)!;
+    await future.put('programs', program.id, onServer.version, { ...(onServer.data as object), name: 'Écrit par la v2', format: 2 });
+
+    // Cette app ne sait pas lire le format 2 : elle ne l'applique pas…
+    expect(await phoneA.app.sync.synchronize()).toBe('outdated');
+    expect((await activeProgram(phoneA)).name).toBe(program.name);
+
+    // … et ne peut pas l'écraser avec son ancien format.
+    await rename(phoneA, program, 'Écrit par la v1');
+    expect(await phoneA.app.sync.synchronize()).toBe('outdated');
+    const stored = server.stored(account(), 'programs').find((d) => d.id === program.id)!;
+    expect((stored.data as Program).name).toBe('Écrit par la v2');
+    expect(await phoneA.app.deps.syncStore.pending()).toHaveLength(1); // gardé, rien n'est perdu
+  });
+});

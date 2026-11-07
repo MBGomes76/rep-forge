@@ -86,7 +86,9 @@ function SyncCard({ state }: { state: SyncState }) {
   let title: string;
   let detail: string | null;
   let warn = false;
-  if (status.problem === 'unauthorized') {
+  if (status.problem === 'outdated') {
+    [title, detail, warn] = ['Mise à jour nécessaire', 'Tes données ont été modifiées par une version plus récente de l’application. Mets-la à jour (recharge la page) pour reprendre la synchronisation. Rien n’est perdu.', true];
+  } else if (status.problem === 'unauthorized') {
     [title, detail, warn] = ['Session expirée', 'Reconnecte-toi pour reprendre la synchronisation. Rien n’est perdu : tout reste enregistré sur ce téléphone.', true];
   } else if (!online || status.problem === 'offline') {
     [title, detail, warn] = ['Hors ligne', waiting ?? 'Tout est enregistré sur ce téléphone. La synchronisation reprendra au retour du réseau.', true];

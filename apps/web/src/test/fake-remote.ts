@@ -43,6 +43,9 @@ export class FakeServer {
     }
     if (!current && baseVersion !== 0) throw new RemoteError('Ce document est inconnu du serveur.', 'rejected');
     if (current && current.version !== baseVersion) throw new ConflictError(publicView(current));
+    if (current?.data && data && formatOf(data) < formatOf(current.data)) {
+      throw new RemoteError('Une version plus récente de l’application a modifié ce document : mets l’application à jour.', 'outdated');
+    }
     const next = {
       owner,
       collection,
@@ -146,6 +149,11 @@ function publicView({ id, version, revision, deleted, updatedAt, data }: RemoteD
 
 function structuredCloneJson(value: unknown): unknown {
   return value === null || value === undefined ? null : JSON.parse(JSON.stringify(value));
+}
+
+function formatOf(data: unknown): number {
+  const format = (data as { format?: unknown }).format;
+  return typeof format === 'number' ? format : 1;
 }
 
 function sortKeys(value: unknown): unknown {

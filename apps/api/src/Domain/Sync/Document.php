@@ -61,6 +61,9 @@ class Document
             return WriteOutcome::Unchanged;
         }
         $this->assertBasedOnCurrentVersion($baseVersion);
+        if (null !== $this->data && self::formatOf($data) < self::formatOf($this->data)) {
+            throw new OutdatedClient();
+        }
         $this->type->assertValidPayload($this->id, $data);
         $this->apply($data, $nextRevision(), $now);
 
@@ -77,6 +80,17 @@ class Document
         $this->apply(null, $nextRevision(), $now);
 
         return WriteOutcome::Updated;
+    }
+
+    /**
+     * Numéro de format du document, fixé par l'application (1 si absent :
+     * documents créés avant l'introduction des formats).
+     *
+     * @param array<mixed> $data
+     */
+    private static function formatOf(array $data): int
+    {
+        return \is_int($data['format'] ?? null) ? $data['format'] : 1;
     }
 
     public static function assertValidId(string $id): void

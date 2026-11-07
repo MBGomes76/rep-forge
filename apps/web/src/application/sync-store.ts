@@ -24,7 +24,7 @@ export interface SyncConflict {
   readonly remote: RemoteDocument;
 }
 
-export type SyncProblem = 'offline' | 'unauthorized' | 'error';
+export type SyncProblem = 'offline' | 'unauthorized' | 'outdated' | 'error';
 
 export interface SyncStatus {
   readonly lastSyncedAt?: string;
