@@ -284,13 +284,13 @@ export function createUseCases(deps: Dependencies) {
       await updateWorkoutStep(programId, stepId, (step) => ({ ...step, name }));
     },
 
-    async addExerciseToStep(programId: string, stepId: string, exerciseId: string): Promise<void> {
+    /** Ajoute un exercice en fin de séance et renvoie l'identifiant de la ligne créée. */
+    async addExerciseToStep(programId: string, stepId: string, exerciseId: string): Promise<string> {
       const exercise = catalog.all().find((e) => e.id === exerciseId);
       if (!exercise) throw new DomainError('Exercice introuvable dans le catalogue.');
-      await updateWorkoutStep(programId, stepId, (step) => ({
-        ...step,
-        exercises: [...step.exercises, planExercise(newId(), exercise)],
-      }));
+      const planned = planExercise(newId(), exercise);
+      await updateWorkoutStep(programId, stepId, (step) => ({ ...step, exercises: [...step.exercises, planned] }));
+      return planned.id;
     },
 
     async updatePlannedExercise(

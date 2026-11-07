@@ -67,3 +67,4 @@ export const EditIcon = (p: IconProps) => (
     <path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4" />
   </Svg>
 );
+export const ChevronDownIcon = (p: IconProps) => <Svg {...p}><path d="M6 9l6 6 6-6" /></Svg>;

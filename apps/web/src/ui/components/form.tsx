@@ -51,6 +51,15 @@ interface StepperProps {
   canIncrement?: boolean;
 }
 
+/** Bouton − / + sans cadre : seule l'icône est visible, la zone tactile garde 44 px. */
+const bareButton = {
+  bg: 'transparent',
+  borderWidth: '0',
+  color: 'rf.accent',
+  _hover: { bg: 'rf.control' },
+  _disabled: { color: 'rf.muted', opacity: 0.35, cursor: 'default', bg: 'transparent' },
+} as const;
+
 /** Réglage par boutons − / + (plus rapide au pouce qu'un clavier). */
 export function Stepper({ label, value, onDecrement, onIncrement, canDecrement = true, canIncrement = true }: StepperProps) {
   return (
@@ -58,16 +67,58 @@ export function Stepper({ label, value, onDecrement, onIncrement, canDecrement =
       <Box fontSize="15px" color="rf.soft">
         {label}
       </Box>
-      <Flex align="center" gap="2">
-        <IconButton label={`Diminuer : ${label}`} onClick={onDecrement} disabled={!canDecrement}>
+      <Flex align="center">
+        <IconButton label={`Diminuer : ${label}`} onClick={onDecrement} disabled={!canDecrement} {...bareButton}>
           <MinusIcon size={20} />
         </IconButton>
-        <Num minW="56px" textAlign="center" fontSize="18px" fontWeight="700" aria-live="polite">
+        <Num minW="52px" textAlign="center" fontSize="18px" fontWeight="700" aria-live="polite">
           {value}
         </Num>
-        <IconButton label={`Augmenter : ${label}`} onClick={onIncrement} disabled={!canIncrement}>
+        <IconButton label={`Augmenter : ${label}`} onClick={onIncrement} disabled={!canIncrement} {...bareButton}>
           <PlusIcon size={20} />
         </IconButton>
+      </Flex>
+    </Flex>
+  );
+}
+
+interface SegmentedProps<T extends string> {
+  label: string;
+  options: readonly { readonly value: T; readonly label: string }[];
+  value: T;
+  onChange: (value: T) => void;
+}
+
+/** Choix exclusif compact (« Plage | Fixe »), aligné comme une ligne de réglage. */
+export function Segmented<T extends string>({ label, options, value, onChange }: SegmentedProps<T>) {
+  return (
+    <Flex align="center" justify="space-between" gap="2">
+      <Box fontSize="15px" color="rf.soft">
+        {label}
+      </Box>
+      <Flex role="group" aria-label={label} p="3px" gap="3px" bg="rf.surface" borderRadius="control" borderWidth="1px" borderColor="rf.border">
+        {options.map((option) => {
+          const active = option.value === value;
+          return (
+            <chakra.button
+              key={option.value}
+              type="button"
+              aria-pressed={active}
+              onClick={() => !active && onChange(option.value)}
+              minW="68px"
+              h="38px"
+              px="3"
+              borderRadius="10px"
+              fontSize="14px"
+              fontWeight="600"
+              cursor="pointer"
+              bg={active ? 'rf.control' : 'transparent'}
+              color={active ? 'rf.accent' : 'rf.muted'}
+            >
+              {option.label}
+            </chakra.button>
+          );
+        })}
       </Flex>
     </Flex>
   );

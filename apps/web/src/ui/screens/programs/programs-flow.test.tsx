@@ -24,7 +24,7 @@ describe('programmes', () => {
 
     expect(await screen.findByText('Écartés à la poulie')).toBeTruthy();
     await user.click(screen.getByRole('button', { name: 'Augmenter : Séries' }));
-    await user.click(screen.getByRole('button', { name: 'Objectif fixe' }));
+    await user.click(screen.getByRole('button', { name: 'Fixe' }));
 
     await waitFor(async () => {
       const programs = await app.deps.programs.list();
@@ -97,6 +97,23 @@ describe('réorganiser et supprimer', () => {
     });
     await user.click(screen.getByRole('button', { name: 'Actions pour Squat (barre)' }));
     expect((await screen.findByRole('menuitem', { name: 'Monter' })).getAttribute('aria-disabled')).toBe('true');
+  });
+
+  it('les exercices s’affichent repliés en résumé, un seul se déplie pour les réglages', async () => {
+    const user = userEvent.setup();
+    renderApp('/programmes');
+    const [fullBody] = await screen.findAllByRole('button', { name: 'Modifier' });
+    await user.click(fullBody!);
+    await user.click(await screen.findByRole('button', { name: /Full body A.*exercice/ }));
+
+    expect((await screen.findAllByText('3 × 6–8 reps · repos 2:30')).length).toBeGreaterThan(0);
+    expect(screen.queryByRole('button', { name: 'Augmenter : Séries' })).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: 'Régler Squat (barre)' }));
+    expect(screen.getAllByRole('button', { name: 'Augmenter : Séries' })).toHaveLength(1);
+    await user.click(screen.getByRole('button', { name: 'Régler Rowing barre' }));
+    expect(screen.getAllByRole('button', { name: 'Augmenter : Séries' })).toHaveLength(1);
+    expect(screen.getByRole('button', { name: 'Replier Rowing barre' }).getAttribute('aria-expanded')).toBe('true');
   });
 
   it('supprime une séance depuis son menu, après confirmation', async () => {
