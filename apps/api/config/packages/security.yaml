@@ -1,0 +1,44 @@
+security:
+    password_hashers:
+        App\Infrastructure\Security\SecurityUser: 'auto'
+
+    providers:
+        app_users:
+            id: App\Infrastructure\Security\UserProvider
+
+    firewalls:
+        dev:
+            pattern: ^/(_profiler(/|$)|(_wdt|assets|build)/)
+            security: false
+        api:
+            pattern: ^/api
+            # Session côté serveur, cookie HttpOnly (voir docs/decisions/0009).
+            stateless: false
+            provider: app_users
+            entry_point: App\Infrastructure\Security\JsonAuthenticationHandler
+            json_login:
+                check_path: /api/login
+                username_path: email
+                password_path: password
+                failure_handler: App\Infrastructure\Security\JsonAuthenticationHandler
+            # 5 essais ratés par adresse (et par IP) toutes les 15 minutes.
+            login_throttling:
+                max_attempts: 5
+                interval: '15 minutes'
+            logout:
+                path: /api/logout
+
+    access_control:
+        - { path: ^/api/login$, roles: PUBLIC_ACCESS }
+        - { path: ^/api/invitations/, roles: PUBLIC_ACCESS }
+        - { path: ^/api, roles: ROLE_USER }
+
+when@test:
+    security:
+        password_hashers:
+            # Hachage volontairement lent en production ; au minimum en test pour la vitesse.
+            App\Infrastructure\Security\SecurityUser:
+                algorithm: auto
+                cost: 4
+                time_cost: 3
+                memory_cost: 10

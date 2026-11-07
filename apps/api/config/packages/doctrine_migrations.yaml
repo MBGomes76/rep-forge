@@ -1,0 +1,6 @@
+doctrine_migrations:
+    migrations_paths:
+        'DoctrineMigrations': '%kernel.project_dir%/migrations'
+    # Les migrations modifient le schéma : elles passent par le rôle admin.
+    em: admin
+    enable_profiler: false

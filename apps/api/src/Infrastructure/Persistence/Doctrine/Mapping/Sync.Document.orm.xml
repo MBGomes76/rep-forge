@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+    <!--
+      Clé composée (compte, type, identifiant) : l'identifiant vient de l'appareil,
+      il n'est unique qu'à l'intérieur d'un compte. Un document ne peut donc jamais
+      « tomber » dans le compte de quelqu'un d'autre.
+    -->
+    <entity name="App\Domain\Sync\Document" table="document">
+        <indexes>
+            <index name="document_changes_idx" columns="owner_id,type,revision"/>
+        </indexes>
+        <id name="ownerId" type="guid"/>
+        <id name="type" type="string" length="20" enum-type="App\Domain\Sync\DocumentType"/>
+        <id name="id" type="string" length="100"/>
+        <field name="version" type="integer"/>
+        <field name="revision" type="bigint"/>
+        <!-- jsonb : stockage binaire, interrogeable si besoin plus tard. -->
+        <field name="data" type="json" nullable="true">
+            <options>
+                <option name="jsonb">true</option>
+            </options>
+        </field>
+        <field name="updatedAt" type="datetimetz_immutable"/>
+    </entity>
+</doctrine-mapping>

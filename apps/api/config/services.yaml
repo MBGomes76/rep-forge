@@ -1,0 +1,16 @@
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    App\:
+        resource: '../src/'
+        exclude:
+            # Le domaine est fait d'objets PHP purs, pas de services.
+            - '../src/Domain/'
+            - '../src/Kernel.php'
+
+    # Les dépôts du domaine sont des interfaces : on choisit ici leur implémentation.
+    App\Domain\Account\UserRepository: '@App\Infrastructure\Persistence\Doctrine\DoctrineUserRepository'
+    App\Domain\Account\InvitationRepository: '@App\Infrastructure\Persistence\Doctrine\DoctrineInvitationRepository'
+    App\Domain\Sync\DocumentRepository: '@App\Infrastructure\Persistence\Doctrine\DoctrineDocumentRepository'
