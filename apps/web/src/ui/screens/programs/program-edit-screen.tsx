@@ -5,7 +5,7 @@ import { Navigate, useNavigate, useParams } from 'react-router';
 import { useApp } from '../../app-context';
 import { ActionMenu } from '../../components/action-menu';
 import { ConfirmDialog } from '../../components/confirm-dialog';
-import { MoveButtons, NameField } from '../../components/form';
+import { MoveButtons, NameField, NotesField } from '../../components/form';
 import { ArrowDownIcon, ArrowUpIcon, ChevronRightIcon, EditIcon, TrashIcon } from '../../components/icons';
 import { Screen } from '../../components/screen';
 import { useAction } from '../../components/toaster';
@@ -51,6 +51,13 @@ export function ProgramEditScreen() {
           label="Nom du programme"
           value={program.name}
           onSave={(name) => void run(() => useCases.renameProgram(program.id, name))}
+        />
+        <NotesField
+          key={`${program.id}-description`}
+          label="Description"
+          placeholder="Objectif, progression, consignes…"
+          value={program.description ?? ''}
+          onSave={(text) => void run(() => useCases.describeProgram(program.id, text))}
         />
         <Box fontSize="14px" color="rf.muted">
           {program.steps.length

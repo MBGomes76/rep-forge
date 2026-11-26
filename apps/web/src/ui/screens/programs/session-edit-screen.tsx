@@ -1,10 +1,21 @@
 import { Box, chakra, Flex, Stack } from '@chakra-ui/react';
-import { fixedTarget, formatTarget, rangeTarget, type Exercise, type PlannedExercise, type RepTarget } from '@repforge/domain';
+import {
+  fixedTarget,
+  formatRirTarget,
+  formatTarget,
+  rangeTarget,
+  RIR_LIMITS,
+  rirTarget,
+  type Exercise,
+  type PlannedExercise,
+  type RepTarget,
+  type RirTarget,
+} from '@repforge/domain';
 import { useState } from 'react';
 import { Navigate, useParams } from 'react-router';
 import { useApp } from '../../app-context';
 import { ActionMenu } from '../../components/action-menu';
-import { NameField, Segmented, Stepper } from '../../components/form';
+import { NameField, NotesField, Segmented, Stepper } from '../../components/form';
 import { ArrowDownIcon, ArrowUpIcon, ChevronDownIcon, PlusIcon, TrashIcon } from '../../components/icons';
 import { Screen } from '../../components/screen';
 import { useAction } from '../../components/toaster';
@@ -36,7 +47,12 @@ function withMax(target: RepTarget, value: number): RepTarget {
   return rangeTarget(Math.min(value, target.min), value);
 }
 
-type PlannedPatch = Partial<Pick<PlannedExercise, 'sets' | 'target' | 'restSeconds'>>;
+const RIR_RANGE = [RIR_LIMITS.min, RIR_LIMITS.max] as const;
+
+/** Objectif de RIR proposé quand on l'active. */
+const DEFAULT_RIR = rirTarget(1, 2);
+
+type PlannedPatch = Partial<Pick<PlannedExercise, 'sets' | 'target' | 'restSeconds'>> & { rirTarget?: RirTarget | null };
 
 export function SessionEditScreen() {
   const { programId, stepId } = useParams();
@@ -71,6 +87,13 @@ export function SessionEditScreen() {
           label="Nom de la séance"
           value={step.name}
           onSave={(name) => void run(() => useCases.renameStep(program.id, step.id, name))}
+        />
+        <NotesField
+          key={`${step.id}-description`}
+          label="Description"
+          placeholder="Échauffement, consignes, technique…"
+          value={step.description ?? ''}
+          onSave={(text) => void run(() => useCases.describeStep(program.id, step.id, text))}
         />
 
         {step.exercises.length === 0 ? (
@@ -107,10 +130,11 @@ export function SessionEditScreen() {
   );
 }
 
-/** Résumé d'une ligne : « 3 × 8–12 reps · repos 2:00 ». */
+/** Résumé d'une ligne : « 3 × 8–12 reps · RIR 1–2 · repos 2:00 ». */
 function summary(planned: PlannedExercise, isDuration: boolean): string {
   const target = `${formatTarget(planned.target)} ${isDuration ? 's' : 'reps'}`;
-  return `${planned.sets} × ${target} · repos ${formatRest(planned.restSeconds)}`;
+  const rir = planned.rirTarget ? ` · ${formatRirTarget(planned.rirTarget)}` : '';
+  return `${planned.sets} × ${target}${rir} · repos ${formatRest(planned.restSeconds)}`;
 }
 
 interface PlannedExerciseCardProps {
@@ -243,6 +267,20 @@ function PlannedExerciseSettings({
         />
       )}
 
+      {!isDuration && (
+        <Segmented
+          label="Objectif RIR"
+          options={[
+            { value: 'none', label: 'Aucun' },
+            { value: 'range', label: 'Plage' },
+          ]}
+          value={planned.rirTarget ? 'range' : 'none'}
+          onChange={(kind) => onChange({ rirTarget: kind === 'range' ? DEFAULT_RIR : null })}
+        />
+      )}
+
+      {!isDuration && planned.rirTarget && <RirSteppers target={planned.rirTarget} onChange={(rir) => onChange({ rirTarget: rir })} />}
+
       <Stepper
         label="Repos"
         value={formatRest(planned.restSeconds)}
@@ -252,5 +290,30 @@ function PlannedExerciseSettings({
         onIncrement={() => onChange({ restSeconds: clamp(planned.restSeconds + 15, LIMITS.rest) })}
       />
     </Stack>
+  );
+}
+
+/** RIR minimum et maximum : la plage reste cohérente (le minimum ne dépasse jamais le maximum). */
+function RirSteppers({ target, onChange }: { target: RirTarget; onChange: (target: RirTarget) => void }) {
+  const { min, max } = target;
+  return (
+    <>
+      <Stepper
+        label="RIR min"
+        value={String(min)}
+        canDecrement={min > RIR_RANGE[0]}
+        canIncrement={min < RIR_RANGE[1]}
+        onDecrement={() => onChange(rirTarget(min - 1, max))}
+        onIncrement={() => onChange(rirTarget(min + 1, Math.max(min + 1, max)))}
+      />
+      <Stepper
+        label="RIR max"
+        value={String(max)}
+        canDecrement={max > RIR_RANGE[0]}
+        canIncrement={max < RIR_RANGE[1]}
+        onDecrement={() => onChange(rirTarget(Math.min(min, max - 1), max - 1))}
+        onIncrement={() => onChange(rirTarget(min, max + 1))}
+      />
+    </>
   );
 }

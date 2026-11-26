@@ -75,10 +75,11 @@ describe('valeurs par défaut d’un exercice ajouté', () => {
     expect(planned.target).toEqual({ kind: 'fixed', value: 5 });
   });
 
-  it('refuse un exercice prévu sans série ou avec un repos négatif', () => {
+  it('refuse un exercice prévu sans série, avec un repos négatif ou un RIR incohérent', () => {
     const planned = planExercise('p4', benchPress);
     expect(() => assertValidPlannedExercise(planned)).not.toThrow();
     expect(() => assertValidPlannedExercise({ ...planned, sets: 0 })).toThrow(DomainError);
+    expect(() => assertValidPlannedExercise({ ...planned, rirTarget: { min: 3, max: 1 } })).toThrow(DomainError);
     expect(() => assertValidPlannedExercise({ ...planned, restSeconds: -15 })).toThrow(DomainError);
     expect(() =>
       assertValidPlannedExercise({ ...planned, target: { kind: 'range', min: 12, max: 8 } }),

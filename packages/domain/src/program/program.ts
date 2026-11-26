@@ -2,6 +2,7 @@ import type { Exercise } from '../catalog/exercise';
 import { DomainError } from '../shared/domain-error';
 import type { LocalDate } from '../shared/local-date';
 import { fixedTarget, rangeTarget, type RepTarget } from './rep-target';
+import { rirTarget, type RirTarget } from './rir-target';
 
 /** Un exercice tel que prévu dans une séance du programme. */
 export interface PlannedExercise {
@@ -9,6 +10,8 @@ export interface PlannedExercise {
   readonly exerciseId: string;
   readonly sets: number;
   readonly target: RepTarget;
+  /** Objectif de RIR, facultatif (absent = pas d'objectif). */
+  readonly rirTarget?: RirTarget;
   readonly restSeconds: number;
 }
 
@@ -16,6 +19,8 @@ export interface WorkoutStep {
   readonly kind: 'workout';
   readonly id: string;
   readonly name: string;
+  /** Notes libres sur la séance (consignes, échauffement…). */
+  readonly description?: string;
   readonly exercises: readonly PlannedExercise[];
 }
 
@@ -40,6 +45,8 @@ export interface ProgramSchedule {
 export interface Program {
   readonly id: string;
   readonly name: string;
+  /** Notes libres sur le programme (objectif, progression…). */
+  readonly description?: string;
   readonly steps: readonly ProgramStep[];
   readonly schedule: ProgramSchedule;
 }
@@ -87,6 +94,7 @@ export function assertValidPlannedExercise(planned: PlannedExercise): void {
   // Revalide l'objectif (il peut venir du stockage ou de l'API).
   if (planned.target.kind === 'range') rangeTarget(planned.target.min, planned.target.max);
   else fixedTarget(planned.target.value);
+  if (planned.rirTarget) rirTarget(planned.rirTarget.min, planned.rirTarget.max);
 }
 
 /**

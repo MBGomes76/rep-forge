@@ -49,6 +49,14 @@ describe('démarrer une séance', () => {
     ]);
   });
 
+  it('copie l’objectif de RIR s’il y en a un, et rien sinon', () => {
+    const program = pplProgram(0);
+    const push = program.steps[0] as WorkoutStep;
+    const withRir = replaceStep(program, { ...push, exercises: [{ ...push.exercises[0]!, rirTarget: { min: 1, max: 2 } }] });
+    expect(startPush(withRir).exercises[0]?.rirTarget).toEqual({ min: 1, max: 2 });
+    expect(startPush().exercises[0]).not.toHaveProperty('rirTarget');
+  });
+
   it('refuse de démarrer sur une étape de repos', () => {
     expect(() => startPush(pplProgram(2))).toThrow(DomainError);
   });

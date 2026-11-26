@@ -8,6 +8,11 @@ import { DomainError } from '../shared/domain-error';
  * son numéro de format, et l'app sait mettre à niveau les anciens, une étape à
  * la fois (1 → 2 → 3…). Quand le modèle change, on incrémente
  * `DOCUMENT_FORMAT` et on ajoute la fonction de passage, avec son test.
+ *
+ * Ajouter un champ FACULTATIF ne demande pas de changer de format : une
+ * version plus ancienne de l'app le conserve (elle recopie les objets sans
+ * les reconstruire) et se contente de l'ignorer. C'est le cas de la
+ * description d'un programme ou d'une séance, et de l'objectif de RIR.
  */
 
 export type DocumentKind = 'program' | 'workout' | 'rest-day' | 'setting';

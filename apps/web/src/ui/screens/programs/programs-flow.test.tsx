@@ -154,6 +154,28 @@ describe('réorganiser et supprimer', () => {
     expect(screen.getByRole('button', { name: 'Replier Rowing barre' }).getAttribute('aria-expanded')).toBe('true');
   });
 
+  it('décrit une séance et fixe un objectif de RIR à un exercice', async () => {
+    const user = userEvent.setup();
+    const { app } = await renderApp('/programmes');
+    const [fullBody] = await screen.findAllByRole('button', { name: 'Modifier' });
+    await user.click(fullBody!);
+    await user.click(await screen.findByRole('button', { name: /Full body A.*exercice/ }));
+
+    await user.type(await screen.findByRole('textbox', { name: 'Description' }), 'Échauffement 10 min');
+    await user.click(screen.getByRole('button', { name: 'Régler Squat (barre)' }));
+    await user.click(screen.getByRole('button', { name: 'Plage', pressed: false }));
+    await user.click(screen.getByRole('button', { name: 'Augmenter : RIR max' }));
+    await user.click(screen.getByRole('button', { name: 'Replier Squat (barre)' }));
+    expect(screen.getByText(/· RIR 1–3 ·/)).toBeTruthy();
+
+    await user.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    await waitFor(async () => {
+      const step = (await app.deps.programs.list()).find((p) => p.name === 'Full body · 3 jours')?.steps[0];
+      expect(step).toMatchObject({ description: 'Échauffement 10 min' });
+      expect(step?.kind === 'workout' && step.exercises[0]?.rirTarget).toEqual({ min: 1, max: 3 });
+    });
+  });
+
   it('supprime une séance depuis son menu, après confirmation', async () => {
     const user = userEvent.setup();
     const { app } = await renderApp('/programmes');

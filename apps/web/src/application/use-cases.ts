@@ -28,6 +28,7 @@ import {
   skipCurrentWorkout,
   type PlannedExercise,
   type Program,
+  type RirTarget,
   type SetInput,
   type Workout,
   type WorkoutStep,
@@ -39,6 +40,12 @@ import { buildProgramFromTemplate, PROGRAM_TEMPLATES } from './program-templates
  * Cas d'utilisation : chacun lit l'état, applique une règle du domaine et
  * enregistre le résultat. Aucune règle métier ici, seulement de l'orchestration.
  */
+/** Une description vide retire le champ, plutôt que de garder une chaîne vide. */
+function withDescription<T extends { readonly description?: string }>(item: T, description: string): T {
+  const { description: _previous, ...rest } = item;
+  return (description.trim() ? { ...rest, description } : rest) as T;
+}
+
 export function createUseCases(deps: Dependencies) {
   const { programs, programDrafts, workouts, restDays, settings, catalog, clock, newId, transaction } = deps;
   const today = () => fromDate(clock.now());
@@ -85,7 +92,7 @@ export function createUseCases(deps: Dependencies) {
     });
   }
 
-  async function updateWorkoutStep(
+  async function editWorkoutStep(
     programId: string,
     stepId: string,
     change: (step: WorkoutStep) => WorkoutStep,
@@ -322,11 +329,19 @@ export function createUseCases(deps: Dependencies) {
 
     /** Change la place d'un exercice dans une séance du programme. */
     async moveExercise(programId: string, stepId: string, plannedId: string, toIndex: number): Promise<void> {
-      await updateWorkoutStep(programId, stepId, (step) => moveExerciseInStep(step, plannedId, toIndex));
+      await editWorkoutStep(programId, stepId, (step) => moveExerciseInStep(step, plannedId, toIndex));
+    },
+
+    async describeProgram(programId: string, description: string): Promise<void> {
+      await editProgram(programId, (p) => withDescription(p, description));
+    },
+
+    async describeStep(programId: string, stepId: string, description: string): Promise<void> {
+      await editWorkoutStep(programId, stepId, (step) => withDescription(step, description));
     },
 
     async renameStep(programId: string, stepId: string, name: string): Promise<void> {
-      await updateWorkoutStep(programId, stepId, (step) => ({ ...step, name }));
+      await editWorkoutStep(programId, stepId, (step) => ({ ...step, name }));
     },
 
     /** Ajoute un exercice en fin de séance et renvoie l'identifiant de la ligne créée. */
@@ -334,7 +349,7 @@ export function createUseCases(deps: Dependencies) {
       const exercise = catalog.all().find((e) => e.id === exerciseId);
       if (!exercise) throw new DomainError('Exercice introuvable dans le catalogue.');
       const planned = planExercise(newId(), exercise);
-      await updateWorkoutStep(programId, stepId, (step) => ({ ...step, exercises: [...step.exercises, planned] }));
+      await editWorkoutStep(programId, stepId, (step) => ({ ...step, exercises: [...step.exercises, planned] }));
       return planned.id;
     },
 
@@ -342,13 +357,17 @@ export function createUseCases(deps: Dependencies) {
       programId: string,
       stepId: string,
       plannedId: string,
-      patch: Partial<Pick<PlannedExercise, 'sets' | 'target' | 'restSeconds'>>,
+      patch: Partial<Pick<PlannedExercise, 'sets' | 'target' | 'restSeconds'>> & { rirTarget?: RirTarget | null },
     ): Promise<void> {
-      await updateWorkoutStep(programId, stepId, (step) => ({
+      await editWorkoutStep(programId, stepId, (step) => ({
         ...step,
         exercises: step.exercises.map((e) => {
           if (e.id !== plannedId) return e;
-          const updated = { ...e, ...patch };
+          const { rirTarget, ...rest } = patch;
+          const updated: PlannedExercise = { ...e, ...rest };
+          // `null` retire l'objectif de RIR : le champ disparaît plutôt que de valoir null.
+          if (rirTarget === null) delete (updated as { rirTarget?: RirTarget }).rirTarget;
+          else if (rirTarget) Object.assign(updated, { rirTarget });
           assertValidPlannedExercise(updated);
           return updated;
         }),
@@ -356,7 +375,7 @@ export function createUseCases(deps: Dependencies) {
     },
 
     async removePlannedExercise(programId: string, stepId: string, plannedId: string): Promise<void> {
-      await updateWorkoutStep(programId, stepId, (step) => ({
+      await editWorkoutStep(programId, stepId, (step) => ({
         ...step,
         exercises: step.exercises.filter((e) => e.id !== plannedId),
       }));

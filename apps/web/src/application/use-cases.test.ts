@@ -251,3 +251,36 @@ describe('édition des programmes', () => {
     expect(await app.deps.workouts.listFinished()).toHaveLength(1);
   });
 });
+
+describe('description et objectif de RIR', () => {
+  it('décrit le programme et une séance ; une description vidée disparaît', async () => {
+    const program = await activeProgram();
+    const step = program.steps[0]!;
+    await app.useCases.describeProgram(program.id, 'Force sur 8 semaines');
+    await app.useCases.describeStep(program.id, step.id, 'Échauffement 10 min');
+    await app.useCases.saveProgramEdits(program.id);
+    const saved = await activeProgram();
+    expect(saved.description).toBe('Force sur 8 semaines');
+    expect(saved.steps[0]).toMatchObject({ description: 'Échauffement 10 min' });
+
+    await app.useCases.describeProgram(program.id, '  ');
+    await app.useCases.saveProgramEdits(program.id);
+    expect(await activeProgram()).not.toHaveProperty('description');
+  });
+
+  it('fixe un objectif de RIR, le copie dans la séance démarrée, puis le retire', async () => {
+    const program = await activeProgram();
+    const step = currentStep(program)!;
+    const planned = step.kind === 'workout' ? step.exercises[0]! : undefined;
+    await app.useCases.updatePlannedExercise(program.id, step.id, planned!.id, { rirTarget: { min: 1, max: 2 } });
+    await app.useCases.saveProgramEdits(program.id);
+
+    const workout = await app.useCases.startWorkout();
+    expect(workout.exercises[0]?.rirTarget).toEqual({ min: 1, max: 2 });
+
+    await app.useCases.updatePlannedExercise(program.id, step.id, planned!.id, { rirTarget: null });
+    await app.useCases.saveProgramEdits(program.id);
+    const saved = currentStep(await activeProgram());
+    expect(saved?.kind === 'workout' && saved.exercises[0]).not.toHaveProperty('rirTarget');
+  });
+});

@@ -2,6 +2,7 @@ import type { Exercise, InputKind } from '../catalog/exercise';
 import { currentStep } from '../program/cycle';
 import type { Program } from '../program/program';
 import type { RepTarget } from '../program/rep-target';
+import type { RirTarget } from '../program/rir-target';
 import { DomainError } from '../shared/domain-error';
 
 /**
@@ -28,6 +29,8 @@ export interface WorkoutExercise {
   readonly inputKind: InputKind;
   readonly loadConvention: string;
   readonly target: RepTarget;
+  /** Objectif de RIR copié du programme, s'il y en avait un. */
+  readonly rirTarget?: RirTarget;
   readonly restSeconds: number;
   readonly sets: readonly WorkoutSet[];
 }
@@ -80,6 +83,7 @@ export function startWorkout({ id, program, catalog, startedAt, newId }: StartWo
         inputKind: exercise.inputKind,
         loadConvention: exercise.loadConvention,
         target: { ...planned.target },
+        ...(planned.rirTarget && { rirTarget: { ...planned.rirTarget } }),
         restSeconds: planned.restSeconds,
         sets: Array.from({ length: planned.sets }, () => ({ id: newId(), performance: null })),
       };

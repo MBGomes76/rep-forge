@@ -1,6 +1,7 @@
 import { Box, chakra, Flex, Grid, Stack } from '@chakra-ui/react';
 import {
   completedSets,
+  formatRirTarget,
   formatTarget,
   previousForSet,
   previousPerformance,
@@ -109,7 +110,8 @@ function ExerciseCard({ workout, exercise, history }: { workout: Workout; exerci
           </Box>
           <Num display="block" fontSize="13px" color="rf.planned" mt="1">
             Objectif : {exercise.sets.length} × {target}
-            {isDuration ? ' s' : ' reps'} · repos {formatRest(exercise.restSeconds)}
+            {isDuration ? ' s' : ' reps'}
+            {exercise.rirTarget && ` · ${formatRirTarget(exercise.rirTarget)}`} · repos {formatRest(exercise.restSeconds)}
           </Num>
         </Box>
 

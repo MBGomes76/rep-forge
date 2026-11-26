@@ -1,5 +1,5 @@
 import { Box, chakra, Flex, Stack } from '@chakra-ui/react';
-import { useId, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { ArrowDownIcon, ArrowUpIcon, MinusIcon, PlusIcon } from './icons';
 import { IconButton, Label, Num } from './ui';
 
@@ -16,27 +16,73 @@ export const textInputStyle = {
 } as const;
 
 /**
- * Champ texte enregistré à chaque frappe. Il garde sa propre valeur locale :
- * lié directement à IndexedDB, l'aller-retour asynchrone ferait sauter le
- * curseur pendant la saisie.
+ * Valeur locale d'un champ enregistré à chaque frappe. Lié directement à
+ * IndexedDB, l'aller-retour asynchrone ferait sauter le curseur pendant la
+ * saisie : le champ garde donc sa propre valeur. Il reprend celle venue
+ * d'ailleurs (modifications annulées, synchronisation) quand il n'a pas le focus.
  */
+function useEditableText(value: string, onSave: (value: string) => void) {
+  const [text, setText] = useState(value);
+  const [focused, setFocused] = useState(false);
+  useEffect(() => {
+    if (!focused) setText(value);
+  }, [value, focused]);
+  return {
+    value: text,
+    onFocus: () => setFocused(true),
+    onBlur: () => setFocused(false),
+    onChange: (e: { target: { value: string } }) => {
+      setText(e.target.value);
+      onSave(e.target.value);
+    },
+  };
+}
+
+/** Champ texte d'une ligne, enregistré à chaque frappe. */
 export function NameField({ label, value, onSave }: { label: string; value: string; onSave: (value: string) => void }) {
   const id = useId();
-  const [text, setText] = useState(value);
+  const field = useEditableText(value, onSave);
   return (
     <Stack gap="1.5">
       <Label as="label" {...{ htmlFor: id }}>
         {label}
       </Label>
-      <chakra.input
+      <chakra.input id={id} autoComplete="off" {...field} {...textInputStyle} />
+    </Stack>
+  );
+}
+
+/** Texte libre sur plusieurs lignes (description), enregistré à chaque frappe. */
+export function NotesField({
+  label,
+  value,
+  placeholder,
+  onSave,
+}: {
+  label: string;
+  value: string;
+  placeholder?: string;
+  onSave: (value: string) => void;
+}) {
+  const id = useId();
+  const field = useEditableText(value, onSave);
+  return (
+    <Stack gap="1.5">
+      <Label as="label" {...{ htmlFor: id }}>
+        {label}
+      </Label>
+      <chakra.textarea
         id={id}
-        value={text}
-        autoComplete="off"
-        onChange={(e) => {
-          setText(e.target.value);
-          onSave(e.target.value);
-        }}
+        rows={3}
+        placeholder={placeholder}
+        {...field}
         {...textInputStyle}
+        h="auto"
+        minH="80px"
+        py="2.5"
+        lineHeight="1.45"
+        resize="vertical"
+        _placeholder={{ color: 'rf.muted' }}
       />
     </Stack>
   );

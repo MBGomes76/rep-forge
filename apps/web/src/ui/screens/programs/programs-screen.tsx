@@ -50,6 +50,11 @@ export function ProgramsScreen() {
                     </Box>
                   )}
                 </Flex>
+                {program.description && (
+                  <Box fontSize="14px" color="rf.soft" lineHeight="1.4" lineClamp="2" whiteSpace="pre-line">
+                    {program.description}
+                  </Box>
+                )}
                 <Box fontSize="14px" color="rf.muted">
                   {plural(program.steps.length, 'étape')} · {plural(workouts, 'entraînement')}
                 </Box>

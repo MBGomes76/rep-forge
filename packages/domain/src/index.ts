@@ -7,6 +7,7 @@ export * from './catalog/exercise';
 export * from './catalog/search';
 
 export * from './program/rep-target';
+export * from './program/rir-target';
 export * from './program/program';
 export * from './program/cycle';
 
