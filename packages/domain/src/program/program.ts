@@ -104,3 +104,23 @@ export function moveExercise(step: WorkoutStep, plannedId: string, toIndex: numb
   exercises.splice(toIndex, 0, moved!);
   return { ...step, exercises };
 }
+
+/**
+ * Copie d'un programme, pour en faire une variante. Tous les identifiants sont
+ * neufs : la copie et l'original évoluent séparément, et l'historique de
+ * l'original ne se mélange pas à celui de la copie. Le cycle de la copie
+ * commence à la première étape, aujourd'hui.
+ */
+export function duplicateProgram(program: Program, newId: () => string, today: LocalDate): Program {
+  return {
+    ...program,
+    id: newId(),
+    name: `${program.name} (copie)`,
+    steps: program.steps.map((step) =>
+      step.kind === 'rest'
+        ? { ...step, id: newId() }
+        : { ...step, id: newId(), exercises: step.exercises.map((e) => ({ ...e, id: newId() })) },
+    ),
+    schedule: { cursor: 0, anchor: today },
+  };
+}

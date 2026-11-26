@@ -7,6 +7,7 @@ import {
   effectiveAnchor,
   completeStepAfterWorkout,
   DomainError,
+  duplicateProgram,
   finishWorkout as finishDomainWorkout,
   fromDate,
   planExercise,
@@ -244,6 +245,13 @@ export function createUseCases(deps: Dependencies) {
       };
       await programs.save(program);
       return program;
+    },
+
+    /** Copie un programme (nouveaux identifiants partout), sans l'activer. */
+    async duplicateProgram(programId: string): Promise<Program> {
+      const copy = duplicateProgram(await requireProgram(programId), newId, today());
+      await programs.save(copy);
+      return copy;
     },
 
     async renameProgram(programId: string, name: string): Promise<void> {

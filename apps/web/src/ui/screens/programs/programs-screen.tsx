@@ -15,6 +15,11 @@ export function ProgramsScreen() {
   const { useCases } = useApp();
   const run = useAction();
 
+  const duplicate = async (programId: string) => {
+    const copy = await run(() => useCases.duplicateProgram(programId), 'Programme dupliqué');
+    if (copy) navigate(`/programmes/${copy.id}`);
+  };
+
   const create = async () => {
     const program = await run(() => useCases.createProgram());
     if (program) navigate(`/programmes/${program.id}`);
@@ -48,6 +53,9 @@ export function ProgramsScreen() {
                 <Flex gap="2">
                   <AppButton variant="ghost" small onClick={() => navigate(`/programmes/${program.id}`)}>
                     Modifier
+                  </AppButton>
+                  <AppButton variant="ghost" small onClick={() => duplicate(program.id)}>
+                    Dupliquer
                   </AppButton>
                   {!active && (
                     <AppButton

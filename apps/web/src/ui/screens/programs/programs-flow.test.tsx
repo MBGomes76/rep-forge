@@ -64,6 +64,18 @@ describe('programmes', () => {
     ]);
   });
 
+  it('duplique un programme et ouvre la copie, sans l’activer', async () => {
+    const user = userEvent.setup();
+    const { app } = await renderApp('/programmes');
+    await user.click((await screen.findAllByRole('button', { name: 'Dupliquer' }))[0]!);
+    expect(((await screen.findByRole('textbox', { name: 'Nom du programme' })) as HTMLInputElement).value).toBe('Full body · 3 jours (copie)');
+    const programs = await app.deps.programs.list();
+    const copy = programs.find((p) => p.name.endsWith('(copie)'))!;
+    const original = programs.find((p) => p.name === 'Full body · 3 jours')!;
+    expect(copy.steps.map((s) => s.name)).toEqual(original.steps.map((s) => s.name));
+    expect(await app.deps.settings.getActiveProgramId()).not.toBe(copy.id);
+  });
+
   it('supprime un programme après confirmation', async () => {
     const user = userEvent.setup();
     const { app } = await renderApp('/programmes');
