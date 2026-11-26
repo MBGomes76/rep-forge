@@ -19,7 +19,8 @@ RUN npm run build -w @repforge/web
 
 # --- 2. API : Symfony en production ----------------------------------------------------
 FROM dunglas/frankenphp:1-php8.4 AS app
-RUN install-php-extensions pdo_pgsql opcache intl
+# zip : Composer télécharge les dépendances sous forme d'archives .zip.
+RUN install-php-extensions pdo_pgsql opcache intl zip
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 COPY deploy/php.ini $PHP_INI_DIR/conf.d/zz-repforge.ini
 
