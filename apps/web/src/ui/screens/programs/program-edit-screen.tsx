@@ -11,13 +11,14 @@ import { Screen } from '../../components/screen';
 import { useAction } from '../../components/toaster';
 import { AppButton, Card, Num } from '../../components/ui';
 import { plural } from '../../format';
-import { useActiveProgramId, useProgram } from '../../hooks/use-data';
+import { useActiveProgramId, useEditedProgram } from '../../hooks/use-data';
+import { ProgramEditFooter } from './edit-bar';
 
 type PendingDeletion = { kind: 'step'; step: ProgramStep } | { kind: 'program' } | null;
 
 export function ProgramEditScreen() {
   const { programId } = useParams();
-  const program = useProgram(programId);
+  const edited = useEditedProgram(programId);
   const activeId = useActiveProgramId();
   const navigate = useNavigate();
   const { useCases } = useApp();
@@ -25,8 +26,9 @@ export function ProgramEditScreen() {
   const [pending, setPending] = useState<PendingDeletion>(null);
   const [reordering, setReordering] = useState(false);
 
-  if (program === null) return <Navigate to="/programmes" replace />;
-  if (program === undefined) return <Screen title="Programme" backTo="/programmes">{null}</Screen>;
+  if (edited === null) return <Navigate to="/programmes" replace />;
+  if (edited === undefined) return <Screen title="Programme" backTo="/programmes">{null}</Screen>;
+  const { program, dirty } = edited;
 
   const openStep = (stepId: string) => navigate(`/programmes/${program.id}/seances/${stepId}`);
   const move = (stepId: string, toIndex: number) => void run(() => useCases.moveStep(program.id, stepId, toIndex));
@@ -42,7 +44,7 @@ export function ProgramEditScreen() {
   };
 
   return (
-    <Screen title="Programme" backTo="/programmes">
+    <Screen title="Programme" backTo="/programmes" footer={<ProgramEditFooter programId={program.id} dirty={dirty} />}>
       <Stack gap="3.5">
         <NameField
           key={program.id}

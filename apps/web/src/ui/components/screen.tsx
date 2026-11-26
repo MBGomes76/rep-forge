@@ -136,7 +136,7 @@ const tabs = [
   { to: '/profil', label: 'Profil', Icon: ProfileIcon, end: false },
 ] as const;
 
-function BottomNav() {
+export function BottomNav() {
   return (
     <Flex
       as="nav"

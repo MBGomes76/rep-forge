@@ -42,6 +42,8 @@ export class RepForgeDb extends Dexie {
   settings!: EntityTable<SettingRecord, 'key'>;
   syncState!: EntityTable<SyncStateRecord, 'key'>;
   conflicts!: EntityTable<ConflictRecord, 'key'>;
+  /** Brouillons d'édition des programmes : propres à l'appareil, jamais synchronisés. */
+  programDrafts!: EntityTable<Program, 'id'>;
 
   constructor(name = 'repforge') {
     super(name);
@@ -55,6 +57,10 @@ export class RepForgeDb extends Dexie {
     this.version(2).stores({
       syncState: 'key, dirty',
       conflicts: 'key',
+    });
+    // Modifications d'un programme en brouillon, jusqu'à « Enregistrer » (ADR 0014).
+    this.version(3).stores({
+      programDrafts: 'id',
     });
   }
 }

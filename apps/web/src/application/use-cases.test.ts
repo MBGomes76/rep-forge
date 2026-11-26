@@ -129,6 +129,7 @@ describe('séance complète', () => {
     const step = currentStep(program)!;
     const planned = step.kind === 'workout' ? step.exercises[0]! : undefined;
     await app.useCases.updatePlannedExercise(program.id, step.id, planned!.id, { sets: 6 });
+    await app.useCases.saveProgramEdits(program.id);
 
     const saved = await app.deps.workouts.get(workout.id);
     expect(saved?.exercises[0]?.sets).toHaveLength(3);
@@ -184,11 +185,50 @@ describe('édition des programmes', () => {
     const withRest = await app.useCases.addStep(program.id, 'rest');
     const step = withRest.steps[0]!;
     await app.useCases.addExerciseToStep(program.id, step.id, 'plank');
+    expect((await app.deps.programs.get(program.id))!.steps).toEqual([]); // brouillon, pas encore enregistré
+    await app.useCases.saveProgramEdits(program.id);
 
     const saved = (await app.deps.programs.get(program.id))!;
     expect(saved.steps.map((s) => s.name)).toEqual(['Séance 1', 'Repos']);
     const first = saved.steps[0]!;
     expect(first.kind === 'workout' && first.exercises[0]?.target).toEqual({ kind: 'fixed', value: 45 });
+  });
+
+  it('les modifications restent en brouillon : rien n’est à envoyer avant « Enregistrer »', async () => {
+    const program = await activeProgram();
+    const before = (await app.deps.syncStore.pending()).length;
+    await app.useCases.renameProgram(program.id, 'PPL revu');
+    await app.useCases.addStep(program.id, 'rest');
+
+    expect((await activeProgram()).name).toBe(program.name);
+    expect((await app.deps.syncStore.pending()).length).toBe(before);
+
+    await app.useCases.saveProgramEdits(program.id);
+    expect((await activeProgram()).name).toBe('PPL revu');
+    expect((await activeProgram()).steps).toHaveLength(program.steps.length + 1);
+    expect(await app.deps.programDrafts.get(program.id)).toBeUndefined();
+  });
+
+  it('« Annuler » abandonne le brouillon', async () => {
+    const program = await activeProgram();
+    await app.useCases.renameProgram(program.id, 'Brouillon');
+    await app.useCases.discardProgramEdits(program.id);
+    expect(await app.deps.programDrafts.get(program.id)).toBeUndefined();
+    expect((await activeProgram()).name).toBe(program.name);
+  });
+
+  it('une séance terminée pendant l’édition n’est pas annulée par l’enregistrement', async () => {
+    const program = await activeProgram();
+    await app.useCases.renameProgram(program.id, 'PPL revu');
+    const workout = await app.useCases.startWorkout();
+    const first = workout.exercises[0]!;
+    await app.useCases.validateSet(workout.id, first.id, first.sets[0]!.id, { weightKg: 80, reps: 8 });
+    await app.useCases.finishWorkout(workout.id);
+    await app.useCases.saveProgramEdits(program.id);
+
+    const saved = await activeProgram();
+    expect(saved.name).toBe('PPL revu');
+    expect(currentStep(saved)?.name).toBe('Pull');
   });
 
   it('refuse une valeur invalide', async () => {

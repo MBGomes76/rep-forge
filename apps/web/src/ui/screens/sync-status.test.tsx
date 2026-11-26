@@ -44,6 +44,7 @@ describe('conflit', () => {
     await other.login(account!.account.email, 'phrase-de-passe-solide');
     expect((await other.put('programs', id, 1, { ...program, name: 'Nom de l’ordinateur' })).version).toBe(2);
     await app.useCases.renameProgram(id, 'Nom du téléphone');
+    await app.useCases.saveProgramEdits(id);
     await app.sync.synchronize();
 
     const card = await screen.findByRole('group', { name: 'Conflit : Programme « Nom du téléphone »' });

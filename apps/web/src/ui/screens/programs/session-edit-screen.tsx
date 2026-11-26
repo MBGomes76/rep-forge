@@ -10,8 +10,9 @@ import { Screen } from '../../components/screen';
 import { useAction } from '../../components/toaster';
 import { AppButton, Card, Hint, Num } from '../../components/ui';
 import { formatRest } from '../../format';
-import { useProgram } from '../../hooks/use-data';
+import { useEditedProgram } from '../../hooks/use-data';
 import { CatalogSheet } from './catalog-sheet';
+import { ProgramEditFooter } from './edit-bar';
 
 /** Bornes des réglages (celles de la maquette). */
 const LIMITS = {
@@ -39,7 +40,7 @@ type PlannedPatch = Partial<Pick<PlannedExercise, 'sets' | 'target' | 'restSecon
 
 export function SessionEditScreen() {
   const { programId, stepId } = useParams();
-  const program = useProgram(programId);
+  const edited = useEditedProgram(programId);
   const { useCases, deps } = useApp();
   const run = useAction();
   const [catalogOpen, setCatalogOpen] = useState(false);
@@ -47,8 +48,9 @@ export function SessionEditScreen() {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const backTo = `/programmes/${programId}`;
-  if (program === null) return <Navigate to="/programmes" replace />;
-  if (program === undefined) return <Screen title="Séance" backTo={backTo}>{null}</Screen>;
+  if (edited === null) return <Navigate to="/programmes" replace />;
+  if (edited === undefined) return <Screen title="Séance" backTo={backTo}>{null}</Screen>;
+  const { program, dirty } = edited;
   const step = program.steps.find((s) => s.id === stepId);
   if (step?.kind !== 'workout') return <Navigate to={backTo} replace />;
 
@@ -62,7 +64,7 @@ export function SessionEditScreen() {
   };
 
   return (
-    <Screen title="Séance" backTo={backTo}>
+    <Screen title="Séance" backTo={backTo} footer={<ProgramEditFooter programId={program.id} dirty={dirty} />}>
       <Stack gap="3">
         <NameField
           key={step.id}

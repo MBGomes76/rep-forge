@@ -1,6 +1,7 @@
 import {
   addSet as addSetToWorkout,
   advance,
+  applyProgramEdits,
   addStep as addStepToProgram,
   adjustRest,
   assertValidPlannedExercise,
@@ -39,7 +40,7 @@ import { buildProgramFromTemplate, PROGRAM_TEMPLATES } from './program-templates
  * enregistre le résultat. Aucune règle métier ici, seulement de l'orchestration.
  */
 export function createUseCases(deps: Dependencies) {
-  const { programs, workouts, restDays, settings, catalog, clock, newId, transaction } = deps;
+  const { programs, programDrafts, workouts, restDays, settings, catalog, clock, newId, transaction } = deps;
   const today = () => fromDate(clock.now());
   const nowIso = () => clock.now().toISOString();
 
@@ -62,14 +63,17 @@ export function createUseCases(deps: Dependencies) {
   }
 
   /**
-   * Lire, modifier, enregistrer : dans une transaction, pour que deux
-   * modifications rapprochées (frappe dans le nom + ajout d'étape) ne
-   * s'écrasent pas l'une l'autre.
+   * Modifier un programme, c'est modifier son brouillon (créé à la première
+   * modification, à partir du programme enregistré). Rien n'est synchronisé
+   * avant « Enregistrer » (ADR 0014). Lire, modifier, écrire dans une
+   * transaction : deux modifications rapprochées (frappe dans le nom + ajout
+   * d'étape) ne s'écrasent pas l'une l'autre.
    */
-  async function updateProgram(id: string, change: (program: Program) => Program): Promise<Program> {
+  async function editProgram(id: string, change: (program: Program) => Program): Promise<Program> {
     return transaction(async () => {
-      const updated = change(await requireProgram(id));
-      await programs.save(updated);
+      const draft = (await programDrafts.get(id)) ?? (await requireProgram(id));
+      const updated = change(draft);
+      await programDrafts.save(updated);
       return updated;
     });
   }
@@ -86,7 +90,7 @@ export function createUseCases(deps: Dependencies) {
     stepId: string,
     change: (step: WorkoutStep) => WorkoutStep,
   ): Promise<Program> {
-    return updateProgram(programId, (program) => {
+    return editProgram(programId, (program) => {
       const step = program.steps.find((s) => s.id === stepId);
       if (step?.kind !== 'workout') throw new DomainError("Cette étape n'est pas un entraînement.");
       return replaceStep(program, change(step));
@@ -254,8 +258,23 @@ export function createUseCases(deps: Dependencies) {
       return copy;
     },
 
+    /** « Enregistrer » : le brouillon devient le programme (un seul envoi au serveur). */
+    async saveProgramEdits(programId: string): Promise<void> {
+      await transaction(async () => {
+        const draft = await programDrafts.get(programId);
+        if (!draft) return;
+        await programs.save(applyProgramEdits(await requireProgram(programId), draft));
+        await programDrafts.delete(programId);
+      });
+    },
+
+    /** « Annuler » : les modifications non enregistrées sont abandonnées. */
+    async discardProgramEdits(programId: string): Promise<void> {
+      await programDrafts.delete(programId);
+    },
+
     async renameProgram(programId: string, name: string): Promise<void> {
-      await updateProgram(programId, (p) => ({ ...p, name }));
+      await editProgram(programId, (p) => ({ ...p, name }));
     },
 
     async activateProgram(programId: string): Promise<void> {
@@ -272,6 +291,7 @@ export function createUseCases(deps: Dependencies) {
     async deleteProgram(programId: string): Promise<void> {
       await transaction(async () => {
         await programs.delete(programId);
+        await programDrafts.delete(programId);
         if ((await settings.getActiveProgramId()) === programId) {
           const [first] = await programs.list();
           await settings.setActiveProgramId(first?.id);
@@ -280,7 +300,7 @@ export function createUseCases(deps: Dependencies) {
     },
 
     async addStep(programId: string, kind: 'workout' | 'rest'): Promise<Program> {
-      return updateProgram(programId, (program) => {
+      return editProgram(programId, (program) => {
         const workoutCount = program.steps.filter((s) => s.kind === 'workout').length;
         return addStepToProgram(
           program,
@@ -292,12 +312,12 @@ export function createUseCases(deps: Dependencies) {
     },
 
     async removeStep(programId: string, stepId: string): Promise<void> {
-      await updateProgram(programId, (program) => removeStepFromProgram(program, stepId));
+      await editProgram(programId, (program) => removeStepFromProgram(program, stepId));
     },
 
     /** Change la place d'une étape dans le cycle. L'étape courante reste la même. */
     async moveStep(programId: string, stepId: string, toIndex: number): Promise<void> {
-      await updateProgram(programId, (program) => moveStepInProgram(program, stepId, toIndex));
+      await editProgram(programId, (program) => moveStepInProgram(program, stepId, toIndex));
     },
 
     /** Change la place d'un exercice dans une séance du programme. */

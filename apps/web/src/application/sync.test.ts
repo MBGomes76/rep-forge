@@ -31,6 +31,7 @@ async function activeProgram({ app }: Phone): Promise<Program> {
 
 async function rename({ app }: Phone, program: Program, name: string): Promise<void> {
   await app.useCases.renameProgram(program.id, name);
+  await app.useCases.saveProgramEdits(program.id);
 }
 
 const account = () => server.accounts.get('moi@example.com')!.account;

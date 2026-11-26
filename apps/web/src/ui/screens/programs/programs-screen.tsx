@@ -6,11 +6,12 @@ import { Screen } from '../../components/screen';
 import { useAction } from '../../components/toaster';
 import { AppButton, Card } from '../../components/ui';
 import { plural } from '../../format';
-import { useActiveProgramId, usePrograms } from '../../hooks/use-data';
+import { useActiveProgramId, useDraftProgramIds, usePrograms } from '../../hooks/use-data';
 
 export function ProgramsScreen() {
   const programs = usePrograms();
   const activeId = useActiveProgramId();
+  const draftIds = useDraftProgramIds();
   const navigate = useNavigate();
   const { useCases } = useApp();
   const run = useAction();
@@ -35,9 +36,14 @@ export function ProgramsScreen() {
             <Card key={program.id}>
               <Stack gap="2.5">
                 <Flex justify="space-between" align="center" gap="2">
-                  <Box fontSize="18px" fontWeight="700" minW="0">
+                  <Box flex="1" fontSize="18px" fontWeight="700" minW="0">
                     {program.name || 'Sans nom'}
                   </Box>
+                  {draftIds?.includes(program.id) && (
+                    <Box flex="none" fontSize="12px" fontWeight="700" color="rf.amber" borderWidth="1px" borderColor="rf.amberBorder" borderRadius="full" px="2.5" py="1">
+                      Non enregistré
+                    </Box>
+                  )}
                   {active && (
                     <Box flex="none" fontSize="12px" fontWeight="700" color="rf.onAccent" bg="rf.accent" borderRadius="full" px="2.5" py="1">
                       Actif

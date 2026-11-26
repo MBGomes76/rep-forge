@@ -22,6 +22,30 @@ export function useProgram(id: string | undefined): Program | null | undefined {
   return useLiveQuery(async () => (id ? ((await deps.programs.get(id)) ?? null) : undefined), [deps, id]);
 }
 
+/** Programme tel qu'il s'édite : son brouillon s'il y en a un, sinon la version enregistrée. */
+export interface EditedProgram {
+  readonly program: Program;
+  /** Des modifications attendent « Enregistrer ». */
+  readonly dirty: boolean;
+}
+
+export function useEditedProgram(id: string | undefined): EditedProgram | null | undefined {
+  const { deps } = useApp();
+  return useLiveQuery(async () => {
+    if (!id) return undefined;
+    const saved = await deps.programs.get(id);
+    if (!saved) return null;
+    const draft = await deps.programDrafts.get(id);
+    return { program: draft ?? saved, dirty: draft !== undefined };
+  }, [deps, id]);
+}
+
+/** Programmes qui ont des modifications non enregistrées. */
+export function useDraftProgramIds(): string[] | undefined {
+  const { deps } = useApp();
+  return useLiveQuery(() => deps.programDrafts.listIds(), [deps]);
+}
+
 export function useActiveProgramId(): string | null | undefined {
   const { deps } = useApp();
   return useLiveQuery(async () => (await deps.settings.getActiveProgramId()) ?? null, [deps]);

@@ -1,5 +1,6 @@
 import type { Program, RestTimer, Workout } from '@repforge/domain';
 import type {
+  ProgramDraftRepository,
   ProgramRepository,
   RestDay,
   RestDayRepository,
@@ -35,6 +36,18 @@ export function dexieProgramRepository(db: RepForgeDb): ProgramRepository {
         await db.programs.delete(id);
         await markChanged(db, 'programs', id);
       }),
+  };
+}
+
+/** Brouillons : table locale, sans marquage pour la synchronisation. */
+export function dexieProgramDraftRepository(db: RepForgeDb): ProgramDraftRepository {
+  return {
+    get: (programId) => db.programDrafts.get(programId),
+    listIds: async () => (await db.programDrafts.toCollection().primaryKeys()) as string[],
+    save: async (draft) => {
+      await db.programDrafts.put(draft);
+    },
+    delete: (programId) => db.programDrafts.delete(programId),
   };
 }
 
@@ -102,9 +115,9 @@ export function dexieSettingsRepository(db: RepForgeDb): SettingsRepository {
   };
 }
 
-/** Transaction Dexie sur toutes les tables : tout est écrit, ou rien. */
+/** Transaction Dexie sur les tables de données (brouillons compris) : tout est écrit, ou rien. */
 export function dexieTransaction(db: RepForgeDb): Transaction {
-  return (work) => db.transaction('rw', trackedTables(db), work);
+  return (work) => db.transaction('rw', [...trackedTables(db), db.programDrafts], work);
 }
 
 /** Vide toutes les tables (déconnexion : rien ne reste sur l'appareil). */

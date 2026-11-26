@@ -15,6 +15,18 @@ export interface ProgramRepository {
   delete(id: string): Promise<void>;
 }
 
+/**
+ * Brouillons d'édition des programmes, propres à l'appareil : les modifications
+ * s'y accumulent jusqu'à « Enregistrer », sans rien envoyer au serveur.
+ */
+export interface ProgramDraftRepository {
+  get(programId: string): Promise<Program | undefined>;
+  /** Identifiants des programmes qui ont des modifications non enregistrées. */
+  listIds(): Promise<string[]>;
+  save(draft: Program): Promise<void>;
+  delete(programId: string): Promise<void>;
+}
+
 export interface WorkoutRepository {
   get(id: string): Promise<Workout | undefined>;
   findInProgress(): Promise<Workout | undefined>;
@@ -61,6 +73,7 @@ export type Transaction = <T>(work: () => Promise<T>) => Promise<T>;
 
 export interface Dependencies {
   readonly programs: ProgramRepository;
+  readonly programDrafts: ProgramDraftRepository;
   readonly workouts: WorkoutRepository;
   readonly restDays: RestDayRepository;
   readonly settings: SettingsRepository;

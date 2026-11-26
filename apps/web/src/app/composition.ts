@@ -7,6 +7,7 @@ import { staticCatalog } from '../infrastructure/catalog-data';
 import { RepForgeDb } from '../infrastructure/db';
 import {
   dexieClearAll,
+  dexieProgramDraftRepository,
   dexieProgramRepository,
   dexieRestDayRepository,
   dexieSettingsRepository,
@@ -23,6 +24,7 @@ import { httpApi } from '../infrastructure/http-api';
 export function createDependencies(db: RepForgeDb = new RepForgeDb(), remote: RemoteApi = httpApi()): Dependencies {
   return {
     programs: dexieProgramRepository(db),
+    programDrafts: dexieProgramDraftRepository(db),
     workouts: dexieWorkoutRepository(db),
     restDays: dexieRestDayRepository(db),
     settings: dexieSettingsRepository(db),

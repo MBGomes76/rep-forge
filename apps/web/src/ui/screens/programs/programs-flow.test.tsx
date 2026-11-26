@@ -25,6 +25,7 @@ describe('programmes', () => {
     expect(await screen.findByText('Écartés à la poulie')).toBeTruthy();
     await user.click(screen.getByRole('button', { name: 'Augmenter : Séries' }));
     await user.click(screen.getByRole('button', { name: 'Fixe' }));
+    await user.click(await screen.findByRole('button', { name: 'Enregistrer' }));
 
     await waitFor(async () => {
       const programs = await app.deps.programs.list();
@@ -76,6 +77,27 @@ describe('programmes', () => {
     expect(await app.deps.settings.getActiveProgramId()).not.toBe(copy.id);
   });
 
+  it('modifications en brouillon : signalées, puis annulées', async () => {
+    const user = userEvent.setup();
+    const { app } = await renderApp('/programmes');
+    const [, ppl] = await screen.findAllByRole('button', { name: 'Modifier' });
+    await user.click(ppl!);
+    expect(screen.queryByRole('region', { name: 'Modifications non enregistrées' })).toBeNull();
+
+    await user.click(await screen.findByRole('button', { name: '+ Repos' }));
+    expect(await screen.findByRole('region', { name: 'Modifications non enregistrées' })).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Retour' }));
+    expect(await screen.findByText('Non enregistré')).toBeTruthy();
+
+    await user.click(screen.getAllByRole('button', { name: 'Modifier' })[1]!);
+    await user.click(await screen.findByRole('button', { name: 'Annuler' }));
+    await user.click(await screen.findByRole('button', { name: 'Tout annuler' }));
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'Modifications non enregistrées' })).toBeNull());
+    const program = (await app.deps.programs.list()).find((p) => p.name.startsWith('PPL'));
+    expect(program?.steps).toHaveLength(5);
+    expect(await app.deps.programDrafts.listIds()).toEqual([]);
+  });
+
   it('supprime un programme après confirmation', async () => {
     const user = userEvent.setup();
     const { app } = await renderApp('/programmes');
@@ -101,6 +123,7 @@ describe('réorganiser et supprimer', () => {
     // Ordre initial : Squat, Développé couché, Rowing barre.
     await user.click(await screen.findByRole('button', { name: 'Actions pour Rowing barre' }));
     await user.click(await screen.findByRole('menuitem', { name: 'Monter' }));
+    await user.click(await screen.findByRole('button', { name: 'Enregistrer' }));
     await waitFor(async () => {
       const program = (await app.deps.programs.list()).find((p) => p.name === 'Full body · 3 jours');
       const step = program?.steps[0];
@@ -139,6 +162,7 @@ describe('réorganiser et supprimer', () => {
     await user.click(await screen.findByRole('button', { name: 'Actions pour l’étape 4 (Jambes)' }));
     await user.click(await screen.findByRole('menuitem', { name: 'Supprimer l’étape' }));
     await user.click(await screen.findByRole('button', { name: 'Supprimer' }));
+    await user.click(await screen.findByRole('button', { name: 'Enregistrer' }));
 
     await waitFor(async () => {
       const program = (await app.deps.programs.list()).find((p) => p.name.startsWith('PPL'));
@@ -153,6 +177,7 @@ describe('réorganiser et supprimer', () => {
     await user.click(ppl!);
     await user.click(await screen.findByRole('button', { name: 'Réorganiser les étapes' }));
     await user.click(screen.getByRole('button', { name: 'Descendre l’étape 1 (Push)' }));
+    await user.click(await screen.findByRole('button', { name: 'Enregistrer' }));
 
     await waitFor(async () => {
       const program = (await app.deps.programs.list()).find((p) => p.name.startsWith('PPL'));

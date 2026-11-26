@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { DomainError } from '../shared/domain-error';
+import { addDays } from '../shared/local-date';
 import { pplProgram, TODAY } from '../testing/fixtures';
-import { addStep, currentStep, moveStep, nextStep, removeStep, replaceStep, stepIndexAfter } from './cycle';
+import { addStep, applyProgramEdits, currentStep, moveStep, nextStep, removeStep, replaceStep, stepIndexAfter } from './cycle';
 import type { Program } from './program';
 
 const emptyProgram: Program = { id: 'empty', name: 'Vide', steps: [], schedule: { cursor: 0, anchor: TODAY } };
@@ -87,5 +88,29 @@ describe('modifier les étapes garde la même étape courante', () => {
     removeStep(original, 'push');
     expect(original.steps).toHaveLength(5);
     expect(original.schedule.cursor).toBe(1);
+  });
+});
+
+describe('enregistrer un brouillon', () => {
+  it('reprend le contenu du brouillon et la position du programme enregistré', () => {
+    const draft = { ...moveStep(pplProgram(0), 'legs', 0), name: 'PPL revu' }; // Jambes, Push, Pull, Repos, Repos
+    const saved = pplProgram(1, addDays(TODAY, 1)); // pendant l’édition, Push a été terminée : Pull est courante
+    const result = applyProgramEdits(saved, draft);
+    expect(result.name).toBe('PPL revu');
+    expect(result.steps.map((s) => s.id)).toEqual(['legs', 'push', 'pull', 'rest-1', 'rest-2']);
+    expect(currentStep(result)?.id).toBe('pull');
+    expect(result.schedule.anchor).toBe(addDays(TODAY, 1));
+  });
+
+  it('si l’étape courante a été supprimée du brouillon, celle qui prend sa place devient courante', () => {
+    const draft = removeStep(pplProgram(0), 'pull');
+    const result = applyProgramEdits(pplProgram(1), draft);
+    expect(currentStep(result)?.id).toBe('rest-1');
+  });
+
+  it('brouillon vidé de ses étapes : programme vide, curseur à zéro', () => {
+    const result = applyProgramEdits(pplProgram(3), { ...pplProgram(0), steps: [] });
+    expect(result.steps).toEqual([]);
+    expect(result.schedule.cursor).toBe(0);
   });
 });

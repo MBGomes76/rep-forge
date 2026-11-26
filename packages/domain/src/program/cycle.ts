@@ -76,3 +76,14 @@ export function replaceStep(program: Program, step: ProgramStep): Program {
     program.steps.map((s) => (s.id === step.id ? step : s)),
   );
 }
+
+/**
+ * Enregistre les modifications d'un brouillon (`edited`) dans le programme
+ * enregistré (`saved`). Le brouillon apporte le contenu (nom, étapes,
+ * exercices) ; la position dans le cycle reste celle du programme enregistré,
+ * qui a pu avancer pendant l'édition (séance terminée, repos accompli, autre
+ * appareil). L'étape courante est retrouvée par son identifiant.
+ */
+export function applyProgramEdits(saved: Program, edited: Program): Program {
+  return withSteps({ ...edited, steps: saved.steps, schedule: saved.schedule }, edited.steps);
+}
