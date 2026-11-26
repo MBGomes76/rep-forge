@@ -10,6 +10,7 @@ import {
   isPlannedToday,
   nextStep,
   projectCalendar,
+  skipCurrentWorkout,
   summarizeWorkout,
   workoutDurationSeconds,
   type CalendarDay,
@@ -21,6 +22,7 @@ import {
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useApp } from '../app-context';
+import { ConfirmDialog } from '../components/confirm-dialog';
 import { PlayIcon } from '../components/icons';
 import { Screen } from '../components/screen';
 import { useAction } from '../components/toaster';
@@ -324,8 +326,42 @@ function NextStepCard({ program, today }: { program: Program; today: LocalDate }
         >
           {plannedToday ? 'Reporter au lendemain' : 'Reporter encore d’un jour'}
         </AppButton>
+        <SkipButton program={program} today={today} />
       </Stack>
     </Card>
+  );
+}
+
+/** « Sauter la séance », avec confirmation : on ne revient pas en arrière. */
+function SkipButton({ program, today }: { program: Program; today: LocalDate }) {
+  const { useCases } = useApp();
+  const run = useAction();
+  const [confirming, setConfirming] = useState(false);
+  const step = currentStep(program);
+  const skipped = skipCurrentWorkout(program, today);
+  const next = currentStep(skipped);
+  if (!step || !next) return null;
+  const nextName = next.kind === 'rest' ? 'Le repos' : next.name;
+  const nextWhen = plannedWhen(skipped.schedule.anchor, today);
+
+  return (
+    <>
+      <AppButton variant="ghost" small onClick={() => setConfirming(true)}>
+        Sauter la séance
+      </AppButton>
+      <ConfirmDialog
+        open={confirming}
+        tone="primary"
+        title={`Sauter ${step.name} ?`}
+        description={`${nextName} sera prévu${next.kind === 'workout' ? 'e' : ''} ${nextWhen}. La séance sautée n’apparaîtra pas dans l’historique.`}
+        confirmLabel="Sauter"
+        onCancel={() => setConfirming(false)}
+        onConfirm={() => {
+          setConfirming(false);
+          void run(() => useCases.skipActive(), `Sautée · ${next.name} prévu${next.kind === 'workout' ? 'e' : ''} ${nextWhen}`);
+        }}
+      />
+    </>
   );
 }
 

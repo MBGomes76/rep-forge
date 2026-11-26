@@ -24,6 +24,22 @@ describe('accueil', () => {
     expect(screen.getByRole('button', { name: /Démarrer l'entraînement/ })).toBeTruthy();
   });
 
+  it('sauter la séance, après confirmation : la suivante est prévue demain, sans trace dans l’historique', async () => {
+    const user = userEvent.setup();
+    const { app } = await renderApp('/');
+    await user.click(await screen.findByRole('button', { name: 'Sauter la séance' }));
+    expect(await screen.findByText('Pull sera prévue demain. La séance sautée n’apparaîtra pas dans l’historique.')).toBeTruthy();
+
+    await user.click(screen.getByRole('button', { name: 'Annuler' }));
+    expect(screen.getByText('Étape 1 sur 5')).toBeTruthy();
+
+    await user.click(screen.getByRole('button', { name: 'Sauter la séance' }));
+    await user.click(await screen.findByRole('button', { name: 'Sauter' }));
+    expect(await screen.findByText('Étape 2 sur 5')).toBeTruthy();
+    expect(screen.getByText('Prévue demain')).toBeTruthy();
+    expect(await app.deps.workouts.listFinished()).toEqual([]);
+  });
+
   it('bascule entre la vue Jours et la vue Cycle', async () => {
     const user = userEvent.setup();
     await renderApp('/');

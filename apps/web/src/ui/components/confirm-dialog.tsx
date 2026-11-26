@@ -6,12 +6,14 @@ interface ConfirmDialogProps {
   title: string;
   description: string;
   confirmLabel: string;
+  /** `danger` (par défaut) pour une suppression, `primary` pour une action simplement définitive. */
+  tone?: 'danger' | 'primary';
   onConfirm: () => void;
   onCancel: () => void;
 }
 
-/** Confirmation avant une suppression (action irréversible, bouton rouge). */
-export function ConfirmDialog({ open, title, description, confirmLabel, onConfirm, onCancel }: ConfirmDialogProps) {
+/** Confirmation avant une action irréversible (suppression : bouton rouge). */
+export function ConfirmDialog({ open, title, description, confirmLabel, tone = 'danger', onConfirm, onCancel }: ConfirmDialogProps) {
   return (
     <Dialog.Root open={open} onOpenChange={(e) => !e.open && onCancel()} role="alertdialog" placement="center">
       <Portal>
@@ -31,7 +33,7 @@ export function ConfirmDialog({ open, title, description, confirmLabel, onConfir
                 <AppButton variant="ghost" small onClick={onCancel}>
                   Annuler
                 </AppButton>
-                <AppButton small variant="danger" onClick={onConfirm}>
+                <AppButton small variant={tone} onClick={onConfirm}>
                   {confirmLabel}
                 </AppButton>
               </Flex>

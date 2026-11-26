@@ -66,6 +66,24 @@ export function completeStepAfterWorkout(
   return completeCurrentStep(program, today);
 }
 
+/**
+ * « Sauter la séance » : elle n'est pas faite, mais le cycle passe à l'étape
+ * suivante, prévue le lendemain du jour où la séance était prévue (comme une
+ * séance terminée ce jour-là). Rien n'entre dans l'historique. Un repos ne se
+ * saute pas : il se fait tout seul, ou s'avance.
+ */
+export function skipCurrentWorkout(program: Program, today: LocalDate): Program {
+  const step = program.steps[program.schedule.cursor];
+  if (step?.kind !== 'workout') throw new DomainError("L'étape courante n'est pas une séance : rien à sauter.");
+  return {
+    ...program,
+    schedule: {
+      cursor: stepIndexAfter(program, 1),
+      anchor: addDays(effectiveAnchor(program.schedule, today), 1),
+    },
+  };
+}
+
 /** L'étape courante est prévue aujourd'hui (ou sa date est passée, ce qui revient au même). */
 export function isPlannedToday(program: Program, today: LocalDate): boolean {
   return effectiveAnchor(program.schedule, today) === today;

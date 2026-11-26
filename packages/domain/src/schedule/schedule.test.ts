@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { currentStep } from '../program/cycle';
 import { DomainError } from '../shared/domain-error';
 import { addDays } from '../shared/local-date';
-import { pplProgram, TODAY } from '../testing/fixtures';
+import { pplProgram, pplSteps, TODAY } from '../testing/fixtures';
 import { projectCalendar } from './calendar';
 import {
   advance,
@@ -15,6 +15,7 @@ import {
   isPostponed,
   postpone,
   settleElapsedRests,
+  skipCurrentWorkout,
 } from './schedule';
 
 const tomorrow = addDays(TODAY, 1);
@@ -143,6 +144,33 @@ describe('avancer', () => {
     expect(() => advance(pplProgram(0), TODAY)).toThrow(DomainError);
     const onlyRest = { ...pplProgram(0), steps: [{ kind: 'rest' as const, id: 'r', name: 'Repos' }] };
     expect(advanceTargetIndex(onlyRest, TODAY)).toBeUndefined();
+  });
+});
+
+describe('sauter une séance', () => {
+  it('passe à l’étape suivante, prévue demain', () => {
+    const program = skipCurrentWorkout(pplProgram(0), TODAY);
+    expect(currentStep(program)?.name).toBe('Pull');
+    expect(program.schedule).toEqual({ cursor: 1, anchor: tomorrow });
+  });
+
+  it('part d’aujourd’hui si la séance était prévue un jour déjà passé', () => {
+    expect(skipCurrentWorkout(pplProgram(0, addDays(TODAY, -3)), TODAY).schedule).toEqual({ cursor: 1, anchor: tomorrow });
+  });
+
+  it('une séance reportée est sautée à sa date prévue : la suivante vient le lendemain', () => {
+    const postponed = postpone(pplProgram(0), TODAY);
+    expect(skipCurrentWorkout(postponed, TODAY).schedule).toEqual({ cursor: 1, anchor: addDays(TODAY, 2) });
+  });
+
+  it('boucle en fin de cycle, et l’étape suivante peut être un repos', () => {
+    const lastWorkout = { ...pplProgram(0), steps: pplSteps.slice(0, 4) };
+    expect(currentStep(skipCurrentWorkout({ ...lastWorkout, schedule: { cursor: 3, anchor: TODAY } }, TODAY))?.name).toBe('Push');
+    expect(currentStep(skipCurrentWorkout(pplProgram(1), TODAY))?.name).toBe('Repos');
+  });
+
+  it('un repos ne se saute pas', () => {
+    expect(() => skipCurrentWorkout(pplProgram(2), TODAY)).toThrow(DomainError);
   });
 });
 

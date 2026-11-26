@@ -23,6 +23,7 @@ import {
   startWorkout as startDomainWorkout,
   unrecordSet,
   settleElapsedRests,
+  skipCurrentWorkout,
   type PlannedExercise,
   type Program,
   type SetInput,
@@ -126,6 +127,12 @@ export function createUseCases(deps: Dependencies) {
     async advanceActive(): Promise<void> {
       const program = await requireActiveProgram();
       await programs.save(advance(program, today()));
+    },
+
+    /** « Sauter la séance » : le cycle passe à l'étape suivante, prévue demain. Rien n'entre dans l'historique. */
+    async skipActive(): Promise<void> {
+      const program = await requireActiveProgram();
+      await programs.save(skipCurrentWorkout(program, today()));
     },
 
     /**
