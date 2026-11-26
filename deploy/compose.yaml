@@ -39,7 +39,9 @@ services:
       - pgdata:/var/lib/postgresql
       - ./initdb:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d repforge"]
+      # Par le réseau (-h 127.0.0.1) : au premier démarrage, PostgreSQL tourne d'abord sans réseau
+      # le temps de créer les rôles (initdb). On attend qu'il soit vraiment prêt pour l'application.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d repforge"]
       interval: 5s
       timeout: 5s
       retries: 10
