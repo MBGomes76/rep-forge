@@ -7,3 +7,6 @@ coverage/
 # Déploiement : secrets et sauvegardes restent sur le serveur.
 deploy/.env
 deploy/backups/
+
+# Fichiers d'informations Claude
+CLAUDE.md
