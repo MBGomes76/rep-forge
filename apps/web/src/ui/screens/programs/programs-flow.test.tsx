@@ -18,7 +18,7 @@ describe('programmes', () => {
     await user.click(await screen.findByRole('button', { name: /Séance 1.*exercice/ }));
 
     await user.click(await screen.findByRole('button', { name: 'Ajouter un exercice' }));
-    await user.type(screen.getByRole('searchbox', { name: 'Rechercher un exercice' }), 'ecartes');
+    await user.type(screen.getByRole('searchbox', { name: 'Rechercher un exercice' }), 'ecartes a la');
     expect(screen.getAllByRole('button', { name: /^Ajouter (?!un exercice)/ })).toHaveLength(1);
     await user.click(screen.getByRole('button', { name: 'Ajouter Écartés à la poulie' }));
 
@@ -57,7 +57,10 @@ describe('programmes', () => {
     await user.click(screen.getByRole('button', { name: 'Poulie' }));
     await user.click(screen.getByRole('button', { name: 'Bras' }));
     expect(screen.getAllByRole('button', { name: /^Ajouter (?!un exercice)/ }).map((b) => b.getAttribute('aria-label'))).toEqual([
+      'Ajouter Curl biceps (poulie)',
+      'Ajouter Curl marteau (corde, poulie)',
       'Ajouter Extension triceps (poulie)',
+      'Ajouter Extension triceps au-dessus de la tête (poulie)',
     ]);
   });
 
