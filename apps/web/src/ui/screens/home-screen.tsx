@@ -28,7 +28,7 @@ import { Screen } from '../components/screen';
 import { useAction } from '../components/toaster';
 import { AppButton, Card, Chip, Hint, Label, Num, ScrollRow } from '../components/ui';
 import { dayOfMonth, formatClock, formatMinutes, formatVolume, plannedWhen, plural, relativeDay, weekdayShort } from '../format';
-import { useActiveProgram, useCalendarHistory, useFinishedWorkouts, useWorkoutInProgress } from '../hooks/use-data';
+import { useActiveProgram, useAllExercises, useCalendarHistory, useFinishedWorkouts, useWorkoutInProgress } from '../hooks/use-data';
 import { useNow } from '../hooks/use-now';
 
 export function HomeScreen() {
@@ -366,8 +366,7 @@ function SkipButton({ program, today }: { program: Program; today: LocalDate }) 
 }
 
 function PlannedLine({ exerciseId, meta }: { exerciseId: string; meta: string }) {
-  const { deps } = useApp();
-  const name = deps.catalog.all().find((e) => e.id === exerciseId)?.name ?? exerciseId;
+  const name = useAllExercises().find((e) => e.id === exerciseId)?.name ?? exerciseId;
   return (
     <Flex justify="space-between" gap="3" fontSize="15px">
       <Box>{name}</Box>

@@ -18,3 +18,4 @@ Chaque fichier explique un choix : le contexte, la décision, et ses conséquenc
 | [0012](0012-pwa.md) | PWA : installable, ouverture hors ligne, mises à jour à la demande |
 | [0013](0013-deploiement.md) | Déploiement : Docker Compose sur un serveur, FrankenPHP |
 | [0014](0014-brouillon-des-programmes.md) | Modifier un programme : un brouillon, puis « Enregistrer » |
+| [0015](0015-exercices-personnalises.md) | Exercices personnalisés |

@@ -7,6 +7,7 @@ import { staticCatalog } from '../infrastructure/catalog-data';
 import { RepForgeDb } from '../infrastructure/db';
 import {
   dexieClearAll,
+  dexieCustomExerciseRepository,
   dexieProgramDraftRepository,
   dexieProgramRepository,
   dexieRestDayRepository,
@@ -29,6 +30,7 @@ export function createDependencies(db: RepForgeDb = new RepForgeDb(), remote: Re
     restDays: dexieRestDayRepository(db),
     settings: dexieSettingsRepository(db),
     catalog: staticCatalog,
+    customExercises: dexieCustomExerciseRepository(db),
     clock: { now: () => new Date() },
     newId: () => crypto.randomUUID(),
     transaction: dexieTransaction(db),

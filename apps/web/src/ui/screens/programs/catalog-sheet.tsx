@@ -1,22 +1,52 @@
 import { Box, chakra, Flex, Heading, Stack } from '@chakra-ui/react';
-import { searchExercises, type Equipment, type Exercise, type MuscleGroup } from '@repforge/domain';
+import {
+  availableExercises,
+  searchExercises,
+  type CustomExercise,
+  type Equipment,
+  type Exercise,
+  type MuscleGroup,
+} from '@repforge/domain';
 import { useState } from 'react';
 import { useApp } from '../../app-context';
 import { textInputStyle } from '../../components/form';
-import { CloseIcon, PlusIcon } from '../../components/icons';
-import { Chip, IconButton, ScrollRow } from '../../components/ui';
+import { CloseIcon, EditIcon, PlusIcon } from '../../components/icons';
+import { AppButton, Chip, IconButton, ScrollRow } from '../../components/ui';
 import { EQUIPMENT_LABELS, MUSCLE_GROUP_LABELS } from '../../format';
+import { useCustomExercises } from '../../hooks/use-data';
+import { CustomExerciseForm } from './custom-exercise-form';
 
 const muscleGroups = Object.keys(MUSCLE_GROUP_LABELS) as MuscleGroup[];
 const equipments = Object.keys(EQUIPMENT_LABELS) as Equipment[];
 
-/** Catalogue plein écran : recherche (sans accents) et filtres par muscle et matériel. */
+type FormState = { readonly exercise?: CustomExercise } | null;
+
+/**
+ * Catalogue plein écran : recherche (sans accents) et filtres par muscle et
+ * matériel. On y crée aussi ses propres exercices, ajoutés aussitôt à la séance.
+ */
 export function CatalogSheet({ onPick, onClose }: { onPick: (exercise: Exercise) => void; onClose: () => void }) {
   const { deps } = useApp();
   const [query, setQuery] = useState('');
   const [muscleGroup, setMuscleGroup] = useState<MuscleGroup | null>(null);
   const [equipment, setEquipment] = useState<Equipment | null>(null);
-  const results = searchExercises(deps.catalog.all(), { query, muscleGroup, equipment });
+  const [form, setForm] = useState<FormState>(null);
+  const custom = useCustomExercises();
+  const customIds = new Set(custom?.map((e) => e.id));
+  const results = searchExercises(availableExercises(deps.catalog.all(), custom ?? []), { query, muscleGroup, equipment });
+
+  if (form) {
+    return (
+      <CustomExerciseForm
+        exercise={form.exercise}
+        onClose={() => setForm(null)}
+        onDone={(created) => {
+          setForm(null);
+          if (created) onPick(created);
+        }}
+      />
+    );
+  }
 
   return (
     <Flex
@@ -73,48 +103,66 @@ export function CatalogSheet({ onPick, onClose }: { onPick: (exercise: Exercise)
       </Stack>
 
       <Stack flex="1" minH="0" overflowY="auto" px="4" pt="3" pb="6" gap="2">
+        <AppButton variant="secondary" small flexShrink="0" onClick={() => setForm({})}>
+          <PlusIcon size={18} />
+          Créer un exercice
+        </AppButton>
         {results.length === 0 && (
           <Box fontSize="15px" color="rf.muted" px="1" py="3">
             Aucun exercice ne correspond à ces filtres.
           </Box>
         )}
         {results.map((exercise) => (
-          <chakra.button
-            key={exercise.id}
-            type="button"
-            onClick={() => onPick(exercise)}
-            aria-label={`Ajouter ${exercise.name}`}
-            w="100%"
-            flexShrink="0"
-            minH="64px"
-            borderRadius="button"
-            bg="rf.card"
-            borderWidth="1px"
-            borderColor="rf.border"
-            display="flex"
-            alignItems="center"
-            gap="3"
-            px="3.5"
-            py="2.5"
-            textAlign="left"
-            color="rf.text"
-            cursor="pointer"
-          >
-            <Box flex="1" minW="0">
-              <Box fontSize="16px" fontWeight="600">
-                {exercise.name}
+          <Flex key={exercise.id} gap="2" align="center" flexShrink="0">
+            <chakra.button
+              type="button"
+              onClick={() => onPick(exercise)}
+              aria-label={`Ajouter ${exercise.name}`}
+              flex="1"
+              minW="0"
+              minH="64px"
+              borderRadius="button"
+              bg="rf.card"
+              borderWidth="1px"
+              borderColor="rf.border"
+              display="flex"
+              alignItems="center"
+              gap="3"
+              px="3.5"
+              py="2.5"
+              textAlign="left"
+              color="rf.text"
+              cursor="pointer"
+            >
+              <Box flex="1" minW="0">
+                <Box fontSize="16px" fontWeight="600">
+                  {exercise.name}
+                </Box>
+                <Box fontSize="13px" color="rf.muted" mt="0.5">
+                  {customIds.has(exercise.id) && 'Perso · '}
+                  {MUSCLE_GROUP_LABELS[exercise.muscleGroup]} · {EQUIPMENT_LABELS[exercise.equipment]}
+                </Box>
+                <Box fontSize="12px" color="rf.planned" mt="0.5">
+                  {exercise.loadConvention}
+                </Box>
               </Box>
-              <Box fontSize="13px" color="rf.muted" mt="0.5">
-                {MUSCLE_GROUP_LABELS[exercise.muscleGroup]} · {EQUIPMENT_LABELS[exercise.equipment]}
+              <Box color="rf.accent">
+                <PlusIcon />
               </Box>
-              <Box fontSize="12px" color="rf.planned" mt="0.5">
-                {exercise.loadConvention}
-              </Box>
-            </Box>
-            <Box color="rf.accent">
-              <PlusIcon />
-            </Box>
-          </chakra.button>
+            </chakra.button>
+            {customIds.has(exercise.id) && (
+              <IconButton
+                label={`Modifier ${exercise.name}`}
+                onClick={() =>
+                  setForm({
+                    exercise: custom!.find((e) => e.id === exercise.id)!,
+                  })
+                }
+              >
+                <EditIcon size={18} />
+              </IconButton>
+            )}
+          </Flex>
         ))}
       </Stack>
     </Flex>

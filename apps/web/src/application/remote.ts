@@ -9,9 +9,10 @@ export interface Account {
 }
 
 /** Ressources synchronisées, une par type de données. */
-export type Collection = 'programs' | 'workouts' | 'rest-days' | 'settings';
+export type Collection = 'exercises' | 'programs' | 'workouts' | 'rest-days' | 'settings';
 
-export const COLLECTIONS: readonly Collection[] = ['programs', 'workouts', 'rest-days', 'settings'];
+/** Les exercices personnalisés d'abord : les programmes qui les utilisent arrivent ensuite. */
+export const COLLECTIONS: readonly Collection[] = ['exercises', 'programs', 'workouts', 'rest-days', 'settings'];
 
 /** Un document tel que le serveur le connaît. `data` vaut null s'il a été supprimé. */
 export interface RemoteDocument {

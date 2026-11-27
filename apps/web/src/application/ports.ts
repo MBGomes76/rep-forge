@@ -1,4 +1,4 @@
-import type { Exercise, LocalDate, Program, RestTimer, Workout } from '@repforge/domain';
+import type { CustomExercise, Exercise, LocalDate, Program, RestTimer, Workout } from '@repforge/domain';
 import type { Account, RemoteApi } from './remote';
 import type { SyncStore } from './sync-store';
 
@@ -60,6 +60,14 @@ export interface SettingsRepository {
   setAccount(account: Account | undefined): Promise<void>;
 }
 
+/** Exercices créés par l'utilisateur (synchronisés), archivés compris. */
+export interface CustomExerciseRepository {
+  list(): Promise<CustomExercise[]>;
+  get(id: string): Promise<CustomExercise | undefined>;
+  save(exercise: CustomExercise): Promise<void>;
+}
+
+/** Exercices fournis avec l'app. */
 export interface Catalog {
   all(): readonly Exercise[];
 }
@@ -78,6 +86,7 @@ export interface Dependencies {
   readonly restDays: RestDayRepository;
   readonly settings: SettingsRepository;
   readonly catalog: Catalog;
+  readonly customExercises: CustomExerciseRepository;
   readonly clock: Clock;
   /** Identifiants uniques générés sur l'appareil (UUID) : envois idempotents. */
   readonly newId: () => string;

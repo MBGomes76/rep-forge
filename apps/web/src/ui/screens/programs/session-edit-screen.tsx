@@ -21,7 +21,7 @@ import { Screen } from '../../components/screen';
 import { useAction } from '../../components/toaster';
 import { AppButton, Card, Hint, Num } from '../../components/ui';
 import { formatRest } from '../../format';
-import { useEditedProgram } from '../../hooks/use-data';
+import { useAllExercises, useEditedProgram } from '../../hooks/use-data';
 import { CatalogSheet } from './catalog-sheet';
 import { ProgramEditFooter } from './edit-bar';
 
@@ -57,7 +57,8 @@ type PlannedPatch = Partial<Pick<PlannedExercise, 'sets' | 'target' | 'restSecon
 export function SessionEditScreen() {
   const { programId, stepId } = useParams();
   const edited = useEditedProgram(programId);
-  const { useCases, deps } = useApp();
+  const { useCases } = useApp();
+  const exercises = useAllExercises();
   const run = useAction();
   const [catalogOpen, setCatalogOpen] = useState(false);
   /** Une seule carte en édition à la fois : le reste de la séance se lit d'un coup d'œil. */
@@ -70,7 +71,7 @@ export function SessionEditScreen() {
   const step = program.steps.find((s) => s.id === stepId);
   if (step?.kind !== 'workout') return <Navigate to={backTo} replace />;
 
-  const exerciseOf = (planned: PlannedExercise) => deps.catalog.all().find((e) => e.id === planned.exerciseId);
+  const exerciseOf = (planned: PlannedExercise) => exercises.find((e) => e.id === planned.exerciseId);
 
   const pick = async (exercise: Exercise) => {
     setCatalogOpen(false);

@@ -5,6 +5,7 @@ export * from './shared/local-date';
 
 export * from './catalog/exercise';
 export * from './catalog/search';
+export * from './catalog/custom-exercise';
 
 export * from './program/rep-target';
 export * from './program/rir-target';

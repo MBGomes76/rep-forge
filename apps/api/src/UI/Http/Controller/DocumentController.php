@@ -32,7 +32,7 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
  *
  * Toujours limité au compte connecté.
  */
-#[Route('/api/{collection}', requirements: ['collection' => 'programs|workouts|rest-days|settings'])]
+#[Route('/api/{collection}', requirements: ['collection' => 'programs|workouts|rest-days|settings|exercises'])]
 final class DocumentController extends AbstractController
 {
     private const TYPES = [
@@ -40,6 +40,7 @@ final class DocumentController extends AbstractController
         'workouts' => DocumentType::Workout,
         'rest-days' => DocumentType::RestDay,
         'settings' => DocumentType::Setting,
+        'exercises' => DocumentType::Exercise,
     ];
 
     #[Route('', methods: ['GET'])]

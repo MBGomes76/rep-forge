@@ -17,6 +17,7 @@ enum DocumentType: string
     case Workout = 'workout';
     case RestDay = 'rest_day';
     case Setting = 'setting';
+    case Exercise = 'exercise';
 
     private const DATE_PATTERN = '/^\d{4}-\d{2}-\d{2}$/';
 
@@ -39,6 +40,16 @@ enum DocumentType: string
                 break;
             case self::RestDay:
                 self::requireFields($data, $id, ['programId' => 'string', 'date' => 'date']);
+                break;
+            case self::Exercise:
+                self::requireFields($data, $id, [
+                    'name' => 'string',
+                    'muscleGroup' => 'string',
+                    'equipment' => 'string',
+                    'inputKind' => 'string',
+                    'loadConvention' => 'string',
+                    'archived' => 'bool',
+                ]);
                 break;
             case self::Setting:
                 if (!\array_key_exists('value', $data)) {
@@ -63,6 +74,7 @@ enum DocumentType: string
                 'string' => \is_string($value),
                 'list' => \is_array($value) && array_is_list($value),
                 'array' => \is_array($value),
+                'bool' => \is_bool($value),
                 'date' => \is_string($value) && 1 === preg_match(self::DATE_PATTERN, $value),
             };
             if (!$valid) {

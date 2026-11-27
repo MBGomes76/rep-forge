@@ -77,6 +77,26 @@ describe('envoi et réception', () => {
     expect((await activeProgram(phoneB)).name).toBe('PPL modifié');
   });
 
+  it('un exercice personnalisé et le programme qui l’utilise arrivent ensemble sur l’autre appareil', async () => {
+    const phoneA = await phone();
+    const phoneB = await phone();
+    const exercise = await phoneA.app.useCases.createCustomExercise('load', {
+      name: 'Presse à mollets',
+      muscleGroup: 'legs',
+      equipment: 'machine',
+      loadConvention: 'Charge affichée sur la machine',
+    });
+    const program = await activeProgram(phoneA);
+    await phoneA.app.useCases.addExerciseToStep(program.id, program.steps[0]!.id, exercise.id);
+    await phoneA.app.useCases.saveProgramEdits(program.id);
+    expect(await phoneA.app.sync.synchronize()).toBe('ok');
+    expect(await phoneB.app.sync.synchronize()).toBe('ok');
+
+    expect(await phoneB.app.deps.customExercises.get(exercise.id)).toEqual(exercise);
+    const workout = await phoneB.app.useCases.startWorkout();
+    expect(workout.exercises.at(-1)).toMatchObject({ exerciseId: exercise.id, name: 'Presse à mollets' });
+  });
+
   it('hors ligne, tout reste sur l’appareil ; plusieurs modifications partent en un seul envoi', async () => {
     const phoneA = await phone();
     const program = await activeProgram(phoneA);

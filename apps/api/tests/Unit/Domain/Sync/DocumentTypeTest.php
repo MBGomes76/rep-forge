@@ -23,6 +23,10 @@ final class DocumentTypeTest extends TestCase
         ]];
         yield 'jour de repos' => [DocumentType::RestDay, 'p1:2026-11-06', ['id' => 'p1:2026-11-06', 'programId' => 'p1', 'date' => '2026-11-06']];
         yield 'réglage' => [DocumentType::Setting, 'activeProgramId', ['value' => 'p1']];
+        yield 'exercice personnalisé' => [DocumentType::Exercise, 'e1', [
+            'id' => 'e1', 'name' => 'Presse à mollets', 'muscleGroup' => 'legs', 'equipment' => 'machine',
+            'inputKind' => 'load', 'loadConvention' => 'Charge affichée', 'archived' => false,
+        ]];
     }
 
     /** @param array<mixed> $data */
@@ -49,6 +53,10 @@ final class DocumentTypeTest extends TestCase
             'id' => 'w1', 'programId' => 'p1', 'stepId' => 's1', 'name' => 'Push', 'startedAt' => 'x',
         ], '« exercises »'];
         yield 'réglage sans valeur' => [DocumentType::Setting, 'activeProgramId', [], '« value »'];
+        yield 'exercice sans état d’archivage' => [DocumentType::Exercise, 'e1', [
+            'id' => 'e1', 'name' => 'Presse', 'muscleGroup' => 'legs', 'equipment' => 'machine',
+            'inputKind' => 'load', 'loadConvention' => 'Charge', 'archived' => 'non',
+        ], '« archived »'];
     }
 
     /** @param array<mixed> $data */

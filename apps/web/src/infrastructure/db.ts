@@ -1,4 +1,4 @@
-import type { Program, Workout } from '@repforge/domain';
+import type { CustomExercise, Program, Workout } from '@repforge/domain';
 import { Dexie, type EntityTable } from 'dexie';
 import type { RestDay } from '../application/ports';
 import type { Collection } from '../application/remote';
@@ -44,6 +44,7 @@ export class RepForgeDb extends Dexie {
   conflicts!: EntityTable<ConflictRecord, 'key'>;
   /** Brouillons d'édition des programmes : propres à l'appareil, jamais synchronisés. */
   programDrafts!: EntityTable<Program, 'id'>;
+  customExercises!: EntityTable<CustomExercise, 'id'>;
 
   constructor(name = 'repforge') {
     super(name);
@@ -61,6 +62,10 @@ export class RepForgeDb extends Dexie {
     // Modifications d'un programme en brouillon, jusqu'à « Enregistrer » (ADR 0014).
     this.version(3).stores({
       programDrafts: 'id',
+    });
+    // Exercices créés par l'utilisateur, synchronisés.
+    this.version(4).stores({
+      customExercises: 'id',
     });
   }
 }

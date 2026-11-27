@@ -1,5 +1,6 @@
 import type { Program, RestTimer, Workout } from '@repforge/domain';
 import type {
+  CustomExerciseRepository,
   ProgramDraftRepository,
   ProgramRepository,
   RestDay,
@@ -35,6 +36,18 @@ export function dexieProgramRepository(db: RepForgeDb): ProgramRepository {
       db.transaction('rw', db.programs, db.syncState, async () => {
         await db.programs.delete(id);
         await markChanged(db, 'programs', id);
+      }),
+  };
+}
+
+export function dexieCustomExerciseRepository(db: RepForgeDb): CustomExerciseRepository {
+  return {
+    list: async () => (await db.customExercises.toArray()).sort((a, b) => a.name.localeCompare(b.name, 'fr')),
+    get: (id) => db.customExercises.get(id),
+    save: (exercise) =>
+      db.transaction('rw', db.customExercises, db.syncState, async () => {
+        await db.customExercises.put(exercise);
+        await markChanged(db, 'exercises', exercise.id);
       }),
   };
 }

@@ -284,3 +284,30 @@ describe('description et objectif de RIR', () => {
     expect(saved?.kind === 'workout' && saved.exercises[0]).not.toHaveProperty('rirTarget');
   });
 });
+
+describe('exercices personnalisés', () => {
+  const input = { name: 'Presse à mollets', muscleGroup: 'legs', equipment: 'machine', loadConvention: 'Charge affichée' } as const;
+
+  it('se créent, s’ajoutent à une séance et se modifient sans changer de type de saisie', async () => {
+    const exercise = await app.useCases.createCustomExercise('duration', input);
+    const program = await activeProgram();
+    await app.useCases.addExerciseToStep(program.id, program.steps[0]!.id, exercise.id);
+    await app.useCases.saveProgramEdits(program.id);
+    const step = (await activeProgram()).steps[0]!;
+    expect(step.kind === 'workout' && step.exercises.at(-1)).toMatchObject({ exerciseId: exercise.id, target: { kind: 'fixed', value: 45 } });
+
+    await app.useCases.updateCustomExercise(exercise.id, { ...input, name: 'Mollets assis' });
+    expect(await app.deps.customExercises.get(exercise.id)).toMatchObject({ name: 'Mollets assis', inputKind: 'duration' });
+  });
+
+  it('archivé, il reste utilisable par les programmes qui l’ont déjà', async () => {
+    const exercise = await app.useCases.createCustomExercise('load', input);
+    const program = await activeProgram();
+    await app.useCases.addExerciseToStep(program.id, program.steps[0]!.id, exercise.id);
+    await app.useCases.saveProgramEdits(program.id);
+    await app.useCases.archiveCustomExercise(exercise.id);
+
+    const workout = await app.useCases.startWorkout();
+    expect(workout.exercises.at(-1)).toMatchObject({ exerciseId: exercise.id, name: 'Presse à mollets' });
+  });
+});

@@ -1,6 +1,7 @@
-import type { CalendarHistoryEntry, Program, RestTimer, Workout } from '@repforge/domain';
+import type { CalendarHistoryEntry, CustomExercise, Exercise, Program, RestTimer, Workout } from '@repforge/domain';
 import { fromDate } from '@repforge/domain';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { useMemo } from 'react';
 import type { Account } from '../../application/remote';
 import type { SyncConflict, SyncStatus } from '../../application/sync-store';
 import { useApp } from '../app-context';
@@ -44,6 +45,19 @@ export function useEditedProgram(id: string | undefined): EditedProgram | null |
 export function useDraftProgramIds(): string[] | undefined {
   const { deps } = useApp();
   return useLiveQuery(() => deps.programDrafts.listIds(), [deps]);
+}
+
+/** Exercices créés par l'utilisateur, archivés compris. */
+export function useCustomExercises(): CustomExercise[] | undefined {
+  const { deps } = useApp();
+  return useLiveQuery(() => deps.customExercises.list(), [deps]);
+}
+
+/** Tous les exercices connus, pour retrouver un exercice d'après son identifiant (archivés compris). */
+export function useAllExercises(): readonly Exercise[] {
+  const { deps } = useApp();
+  const custom = useCustomExercises();
+  return useMemo(() => [...deps.catalog.all(), ...(custom ?? [])], [deps, custom]);
 }
 
 export function useActiveProgramId(): string | null | undefined {

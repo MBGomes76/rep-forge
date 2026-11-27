@@ -1,5 +1,5 @@
 import { Box, chakra, Flex, Stack } from '@chakra-ui/react';
-import { completedSets, type Program, type Workout } from '@repforge/domain';
+import { completedSets, type CustomExercise, type Program, type Workout } from '@repforge/domain';
 import { useState, type FormEvent } from 'react';
 import type { Collection } from '../../application/remote';
 import type { ConflictChoice } from '../../application/sync';
@@ -208,6 +208,7 @@ function InstallCard() {
 // --- Conflits ---------------------------------------------------------------------
 
 const KIND: Record<Collection, string> = {
+  exercises: 'Exercice',
   programs: 'Programme',
   workouts: 'Séance',
   'rest-days': 'Jour de repos',
@@ -227,6 +228,10 @@ function summarize(collection: Collection, data: unknown, programs: readonly Pro
       const sets = workout.exercises.reduce((n, e) => n + completedSets(e).length, 0);
       return `${workout.name} · ${plural(sets, 'série validée', 'séries validées')}${workout.finishedAt ? '' : ' · en cours'}`;
     }
+    case 'exercises': {
+      const exercise = data as CustomExercise;
+      return `${exercise.name}${exercise.archived ? ' · archivé' : ''}`;
+    }
     case 'rest-days':
       return `Repos du ${(data as { date: string }).date}`;
     case 'settings': {
@@ -238,7 +243,7 @@ function summarize(collection: Collection, data: unknown, programs: readonly Pro
 
 function titleOf(conflict: SyncConflictView): string {
   const data = (conflict.local ?? conflict.remote.data) as { name?: string } | null;
-  const name = conflict.collection === 'programs' || conflict.collection === 'workouts' ? data?.name : undefined;
+  const name = conflict.collection === 'settings' || conflict.collection === 'rest-days' ? undefined : data?.name;
   return name ? `${KIND[conflict.collection]} « ${name} »` : KIND[conflict.collection];
 }
 

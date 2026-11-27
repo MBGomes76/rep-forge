@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { renderApp } from '../../../test/render-app';
@@ -196,6 +196,32 @@ describe('réorganiser et supprimer', () => {
       const step = (await app.deps.programs.list()).find((p) => p.name === 'Nouveau programme')?.steps[0];
       expect(step?.kind === 'workout' && step.exercises[0]?.target).toEqual({ kind: 'range', min: 45, max: 65 });
     });
+  });
+
+  it('crée un exercice personnalisé depuis le catalogue, l’ajoute à la séance, puis l’archive', async () => {
+    const user = userEvent.setup();
+    await renderApp('/programmes');
+    const [fullBody] = await screen.findAllByRole('button', { name: 'Modifier' });
+    await user.click(fullBody!);
+    await user.click(await screen.findByRole('button', { name: /Full body A.*exercice/ }));
+    await user.click(await screen.findByRole('button', { name: 'Ajouter un exercice' }));
+    await user.click(screen.getByRole('button', { name: 'Créer un exercice' }));
+
+    await user.type(screen.getByRole('textbox', { name: 'Nom' }), 'Presse à mollets');
+    await user.click(within(screen.getByRole('group', { name: 'Groupe musculaire' })).getByRole('button', { name: 'Jambes' }));
+    await user.click(within(screen.getByRole('group', { name: 'Matériel' })).getByRole('button', { name: 'Haltères' }));
+    expect((screen.getByRole('textbox', { name: 'Convention de charge' }) as HTMLInputElement).value).toBe('Poids par haltère');
+    await user.click(screen.getByRole('button', { name: 'Créer l’exercice' }));
+
+    // Ajouté aussitôt à la séance, déplié pour ses réglages.
+    expect(await screen.findByRole('button', { name: 'Replier Presse à mollets' })).toBeTruthy();
+
+    await user.click(screen.getByRole('button', { name: 'Ajouter un exercice' }));
+    await user.click(await screen.findByRole('button', { name: 'Modifier Presse à mollets' }));
+    await user.click(screen.getByRole('button', { name: 'Archiver cet exercice' }));
+    await user.click(await screen.findByRole('button', { name: 'Archiver' }));
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Ajouter Presse à mollets' })).toBeNull());
+    expect(screen.getByRole('dialog', { name: 'Catalogue' })).toBeTruthy();
   });
 
   it('supprime une séance depuis son menu, après confirmation', async () => {

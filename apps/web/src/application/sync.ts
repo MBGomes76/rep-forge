@@ -4,7 +4,7 @@ import type { SyncEntry, SyncStore } from './sync-store';
 
 export type SyncOutcome = 'ok' | 'offline' | 'unauthorized' | 'outdated' | 'error';
 
-const KINDS: Record<Collection, DocumentKind> = { programs: 'program', workouts: 'workout', 'rest-days': 'rest-day', settings: 'setting' };
+const KINDS: Record<Collection, DocumentKind> = { exercises: 'exercise', programs: 'program', workouts: 'workout', 'rest-days': 'rest-day', settings: 'setting' };
 
 /**
  * Document du serveur → format actuel de l'app (voir document-format). Un document

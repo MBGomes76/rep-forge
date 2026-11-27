@@ -1,4 +1,4 @@
-import { diffDays, type Equipment, type LocalDate, type MuscleGroup } from '@repforge/domain';
+import { diffDays, type Equipment, type InputKind, type LocalDate, type MuscleGroup } from '@repforge/domain';
 
 /** Libellés d'affichage (présentation uniquement). */
 
@@ -17,6 +17,14 @@ export const EQUIPMENT_LABELS: Record<Equipment, string> = {
   dumbbell: 'Haltères',
   machine: 'Machine',
   cable: 'Poulie',
+};
+
+/** Ce que l'on saisit pour une série. */
+export const INPUT_KIND_LABELS: Record<InputKind, string> = {
+  load: 'Charge',
+  added_weight: 'Lest',
+  assistance: 'Assistance',
+  duration: 'Durée',
 };
 
 const WEEKDAYS = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];

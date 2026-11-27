@@ -30,13 +30,15 @@ export async function markChanged(db: RepForgeDb, collection: Collection, id: st
 }
 
 /** Tables touchées par une écriture suivie (à inclure dans les transactions). */
-export const trackedTables = (db: RepForgeDb) => [db.programs, db.workouts, db.restDays, db.settings, db.syncState];
+export const trackedTables = (db: RepForgeDb) => [db.customExercises, db.programs, db.workouts, db.restDays, db.settings, db.syncState];
 
 /** Lecture et écriture « brutes » d'un document, sans marquage : réservées à la synchronisation. */
 function documents(db: RepForgeDb) {
   return {
     async read(collection: Collection, id: string): Promise<unknown> {
       switch (collection) {
+        case 'exercises':
+          return db.customExercises.get(id);
         case 'programs':
           return db.programs.get(id);
         case 'workouts': {
@@ -55,12 +57,14 @@ function documents(db: RepForgeDb) {
     },
     async write(collection: Collection, id: string, data: unknown): Promise<void> {
       if (data === null || data === undefined) {
+        if (collection === 'exercises') await db.customExercises.delete(id);
         if (collection === 'programs') await db.programs.delete(id);
         if (collection === 'workouts') await db.workouts.delete(id);
         if (collection === 'rest-days') await db.restDays.delete(id);
         if (collection === 'settings') await db.settings.delete(id);
         return;
       }
+      if (collection === 'exercises') await db.customExercises.put(data as never);
       if (collection === 'programs') await db.programs.put(data as never);
       if (collection === 'workouts') {
         const workout = data as Omit<WorkoutRecord, 'state'>;
@@ -125,6 +129,7 @@ export function dexieSyncStore(db: RepForgeDb): SyncStore {
       db.transaction('rw', all(), async () => {
         const known = new Set(await db.syncState.toCollection().primaryKeys());
         const local: [Collection, string][] = [
+          ...(await db.customExercises.toCollection().primaryKeys()).map((id): [Collection, string] => ['exercises', id]),
           ...(await db.programs.toCollection().primaryKeys()).map((id): [Collection, string] => ['programs', id]),
           ...(await db.workouts.toCollection().primaryKeys()).map((id): [Collection, string] => ['workouts', id]),
           ...(await db.restDays.toCollection().primaryKeys()).map((id): [Collection, string] => ['rest-days', id]),

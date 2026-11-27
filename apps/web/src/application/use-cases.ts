@@ -1,6 +1,13 @@
 import {
   addSet as addSetToWorkout,
   advance,
+  archiveCustomExercise,
+  createCustomExercise,
+  updateCustomExercise,
+  type CustomExercise,
+  type CustomExerciseInput,
+  type Exercise,
+  type InputKind,
   applyProgramEdits,
   addStep as addStepToProgram,
   adjustRest,
@@ -47,7 +54,7 @@ function withDescription<T extends { readonly description?: string }>(item: T, d
 }
 
 export function createUseCases(deps: Dependencies) {
-  const { programs, programDrafts, workouts, restDays, settings, catalog, clock, newId, transaction } = deps;
+  const { programs, programDrafts, workouts, restDays, settings, catalog, customExercises, clock, newId, transaction } = deps;
   const today = () => fromDate(clock.now());
   const nowIso = () => clock.now().toISOString();
 
@@ -61,6 +68,20 @@ export function createUseCases(deps: Dependencies) {
     const id = await settings.getActiveProgramId();
     if (!id) throw new DomainError('Aucun programme actif.');
     return requireProgram(id);
+  }
+
+  /**
+   * Tous les exercices connus : ceux de l'app et ceux de l'utilisateur, archivés
+   * compris (un programme peut encore utiliser un exercice archivé).
+   */
+  async function allExercises(): Promise<Exercise[]> {
+    return [...catalog.all(), ...(await customExercises.list())];
+  }
+
+  async function requireCustomExercise(id: string): Promise<CustomExercise> {
+    const exercise = await customExercises.get(id);
+    if (!exercise) throw new DomainError('Exercice introuvable.');
+    return exercise;
   }
 
   async function requireWorkout(id: string): Promise<Workout> {
@@ -176,7 +197,7 @@ export function createUseCases(deps: Dependencies) {
       const workout = startDomainWorkout({
         id: newId(),
         program: await requireActiveProgram(),
-        catalog: catalog.all(),
+        catalog: await allExercises(),
         startedAt: nowIso(),
         newId,
       });
@@ -243,6 +264,24 @@ export function createUseCases(deps: Dependencies) {
 
     async skipRest(): Promise<void> {
       await settings.setRestTimer(undefined);
+    },
+
+    // --- Exercices personnalisés --------------------------------------------
+
+    async createCustomExercise(inputKind: InputKind, input: CustomExerciseInput): Promise<CustomExercise> {
+      const exercise = createCustomExercise(newId(), inputKind, input);
+      await customExercises.save(exercise);
+      return exercise;
+    },
+
+    /** Tout se modifie, sauf le type de saisie. */
+    async updateCustomExercise(id: string, input: CustomExerciseInput): Promise<void> {
+      await customExercises.save(updateCustomExercise(await requireCustomExercise(id), input));
+    },
+
+    /** Retire l'exercice du catalogue ; les programmes qui l'utilisent continuent de fonctionner. */
+    async archiveCustomExercise(id: string): Promise<void> {
+      await customExercises.save(archiveCustomExercise(await requireCustomExercise(id)));
     },
 
     // --- Programmes ----------------------------------------------------------
@@ -346,7 +385,7 @@ export function createUseCases(deps: Dependencies) {
 
     /** Ajoute un exercice en fin de séance et renvoie l'identifiant de la ligne créée. */
     async addExerciseToStep(programId: string, stepId: string, exerciseId: string): Promise<string> {
-      const exercise = catalog.all().find((e) => e.id === exerciseId);
+      const exercise = (await allExercises()).find((e) => e.id === exerciseId);
       if (!exercise) throw new DomainError('Exercice introuvable dans le catalogue.');
       const planned = planExercise(newId(), exercise);
       await editWorkoutStep(programId, stepId, (step) => ({ ...step, exercises: [...step.exercises, planned] }));

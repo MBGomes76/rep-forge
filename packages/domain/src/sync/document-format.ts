@@ -15,7 +15,7 @@ import { DomainError } from '../shared/domain-error';
  * description d'un programme ou d'une séance, et de l'objectif de RIR.
  */
 
-export type DocumentKind = 'program' | 'workout' | 'rest-day' | 'setting';
+export type DocumentKind = 'program' | 'workout' | 'rest-day' | 'setting' | 'exercise';
 
 type StoredData = Record<string, unknown>;
 
