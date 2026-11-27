@@ -10,3 +10,6 @@ deploy/backups/
 
 # Fichiers d'informations Claude
 CLAUDE.md
+
+# Fichiers de backups
+backups/*
