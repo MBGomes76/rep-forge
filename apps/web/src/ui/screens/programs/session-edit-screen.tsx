@@ -219,8 +219,14 @@ function PlannedExerciseSettings({
 }) {
   const { target } = planned;
   const minValue = target.kind === 'range' ? target.min : target.value;
-  const minStep = isDuration ? 5 : 1;
+  // Durée : par pas de 5 s, en secondes ; répétitions : par pas de 1.
+  const step = isDuration ? 5 : 1;
   const minLimits = isDuration ? LIMITS.seconds : LIMITS.reps;
+  const maxLimits = isDuration ? LIMITS.seconds : LIMITS.repsMax;
+  const unit = isDuration ? 'Durée' : 'Reps';
+  const suffix = isDuration ? ' (s)' : '';
+  /** Plage proposée quand on quitte l'objectif fixe : 8 → 8–12 reps, 30 → 30–45 s. */
+  const rangeFrom = (value: number) => rangeTarget(value, clamp(value + (isDuration ? 15 : 4), maxLimits));
 
   return (
     <Stack gap="1" px="4" pb="3" pt="2" borderTopWidth="1px" borderColor="rf.border">
@@ -233,37 +239,33 @@ function PlannedExerciseSettings({
         onIncrement={() => onChange({ sets: clamp(planned.sets + 1, LIMITS.sets) })}
       />
 
-      {!isDuration && (
-        <Segmented
-          label="Objectif"
-          options={[
-            { value: 'range', label: 'Plage' },
-            { value: 'fixed', label: 'Fixe' },
-          ]}
-          value={target.kind}
-          onChange={(kind) =>
-            onChange({ target: kind === 'fixed' ? fixedTarget(minValue) : rangeTarget(minValue, Math.min(60, minValue + 4)) })
-          }
-        />
-      )}
+      <Segmented
+        label="Objectif"
+        options={[
+          { value: 'range', label: 'Plage' },
+          { value: 'fixed', label: 'Fixe' },
+        ]}
+        value={target.kind}
+        onChange={(kind) => onChange({ target: kind === 'fixed' ? fixedTarget(minValue) : rangeFrom(minValue) })}
+      />
 
       <Stepper
-        label={isDuration ? 'Durée (s)' : target.kind === 'range' ? 'Reps min' : 'Reps'}
+        label={target.kind === 'range' ? `${unit} min${suffix}` : `${unit}${suffix}`}
         value={String(minValue)}
         canDecrement={minValue > minLimits[0]}
         canIncrement={minValue < minLimits[1]}
-        onDecrement={() => onChange({ target: withMin(target, clamp(minValue - minStep, minLimits)) })}
-        onIncrement={() => onChange({ target: withMin(target, clamp(minValue + minStep, minLimits)) })}
+        onDecrement={() => onChange({ target: withMin(target, clamp(minValue - step, minLimits)) })}
+        onIncrement={() => onChange({ target: withMin(target, clamp(minValue + step, minLimits)) })}
       />
 
       {target.kind === 'range' && (
         <Stepper
-          label="Reps max"
+          label={`${unit} max${suffix}`}
           value={String(target.max)}
-          canDecrement={target.max > LIMITS.repsMax[0]}
-          canIncrement={target.max < LIMITS.repsMax[1]}
-          onDecrement={() => onChange({ target: withMax(target, clamp(target.max - 1, LIMITS.repsMax)) })}
-          onIncrement={() => onChange({ target: withMax(target, clamp(target.max + 1, LIMITS.repsMax)) })}
+          canDecrement={target.max > maxLimits[0]}
+          canIncrement={target.max < maxLimits[1]}
+          onDecrement={() => onChange({ target: withMax(target, clamp(target.max - step, maxLimits)) })}
+          onIncrement={() => onChange({ target: withMax(target, clamp(target.max + step, maxLimits)) })}
         />
       )}
 

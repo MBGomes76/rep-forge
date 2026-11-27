@@ -176,6 +176,28 @@ describe('réorganiser et supprimer', () => {
     });
   });
 
+  it('un exercice de durée accepte une plage de secondes', async () => {
+    const user = userEvent.setup();
+    const { app } = await renderApp('/programmes');
+    await user.click(await screen.findByRole('button', { name: 'Nouveau programme' }));
+    await user.click(await screen.findByRole('button', { name: '+ Entraînement' }));
+    await user.click(await screen.findByRole('button', { name: /Séance 1.*exercice/ }));
+    await user.click(await screen.findByRole('button', { name: 'Ajouter un exercice' }));
+    await user.click(await screen.findByRole('button', { name: 'Ajouter Gainage (planche)' }));
+
+    await user.click(await screen.findByRole('button', { name: 'Plage', pressed: false }));
+    expect(screen.getByText('Durée min (s)')).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Augmenter : Durée max (s)' }));
+    await user.click(screen.getByRole('button', { name: 'Replier Gainage (planche)' }));
+    expect(screen.getByText('3 × 45–65 s · repos 1:00')).toBeTruthy();
+
+    await user.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    await waitFor(async () => {
+      const step = (await app.deps.programs.list()).find((p) => p.name === 'Nouveau programme')?.steps[0];
+      expect(step?.kind === 'workout' && step.exercises[0]?.target).toEqual({ kind: 'range', min: 45, max: 65 });
+    });
+  });
+
   it('supprime une séance depuis son menu, après confirmation', async () => {
     const user = userEvent.setup();
     const { app } = await renderApp('/programmes');
