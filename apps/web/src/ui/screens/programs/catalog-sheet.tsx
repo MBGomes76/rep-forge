@@ -102,7 +102,7 @@ export function CatalogSheet({ onPick, onClose }: { onPick: (exercise: Exercise)
         </ScrollRow>
       </Stack>
 
-      <Stack flex="1" minH="0" overflowY="auto" px="4" pt="3" pb="6" gap="2">
+      <Stack flex="1" minH="0" overflowY="auto" overscrollBehaviorY="contain" px="4" pt="3" pb="6" gap="2">
         <AppButton variant="secondary" small flexShrink="0" onClick={() => setForm({})}>
           <PlusIcon size={18} />
           Créer un exercice

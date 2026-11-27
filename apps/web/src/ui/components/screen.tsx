@@ -27,7 +27,7 @@ interface ScreenProps {
 export function Screen({ title, backTo, footer = 'nav', children }: ScreenProps) {
   const navigate = useNavigate();
   return (
-    <Flex direction="column" h="100dvh" maxW="480px" mx="auto" bg="rf.bg" color="rf.text">
+    <Flex direction="column" h="100%" maxW="480px" mx="auto" bg="rf.bg" color="rf.text">
       <Flex as="header" flex="none" align="center" gap="2.5" px="4" pt="calc(14px + env(safe-area-inset-top))" pb="2.5">
         {backTo && (
           <IconButton label="Retour" onClick={() => navigate(backTo)}>
@@ -41,7 +41,8 @@ export function Screen({ title, backTo, footer = 'nav', children }: ScreenProps)
       </Flex>
       <UpdateBanner />
 
-      <Box as="main" flex="1" minH="0" overflowY="auto" px="4" pt="1" pb="6">
+      {/* `contain` : en bout de défilement, l'élan reste dans le contenu et ne déplace pas l'écran. */}
+      <Box as="main" flex="1" minH="0" overflowY="auto" overscrollBehaviorY="contain" px="4" pt="1" pb="6">
         {children}
       </Box>
 

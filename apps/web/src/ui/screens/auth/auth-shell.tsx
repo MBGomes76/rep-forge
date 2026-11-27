@@ -6,7 +6,7 @@ import { Label } from '../../components/ui';
 /** Écrans hors compte (connexion, invitation) : pas de navigation, le formulaire au centre. */
 export function AuthShell({ title, intro, children }: { title: string; intro: ReactNode; children: ReactNode }) {
   return (
-    <Flex direction="column" minH="100dvh" maxW="480px" mx="auto" px="4" pt="calc(48px + env(safe-area-inset-top))" pb="8" bg="rf.bg">
+    <Flex direction="column" minH="100%" maxW="480px" mx="auto" px="4" pt="calc(48px + env(safe-area-inset-top))" pb="8" bg="rf.bg">
       <Box fontFamily="numeric" fontSize="15px" fontWeight="700" color="rf.accent" letterSpacing="0.02em">
         RepForge
       </Box>

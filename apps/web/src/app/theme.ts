@@ -53,6 +53,18 @@ const config = defineConfig({
       WebkitTapHighlightColor: 'transparent',
       overscrollBehavior: 'none',
     },
+    /**
+     * La page elle-même ne défile jamais : l'app occupe l'écran, fixée sur ses quatre
+     * bords, et seul le contenu de chaque écran défile. Sans ça, arrivé en bas d'un
+     * écran, le geste faisait rebondir toute la page sur téléphone (effet élastique),
+     * barre de navigation comprise, en laissant un vide sous elle.
+     */
+    '#root': {
+      position: 'fixed',
+      inset: '0',
+      overflowY: 'auto',
+      overscrollBehavior: 'none',
+    },
     ':focus-visible': {
       outline: '2px solid {colors.rf.accent}',
       outlineOffset: '2px',

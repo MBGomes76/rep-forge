@@ -93,7 +93,7 @@ export function CustomExerciseForm({ exercise, onDone, onClose }: CustomExercise
         </IconButton>
       </Flex>
 
-      <chakra.form onSubmit={submit} flex="1" minH="0" overflowY="auto" px="4" pt="1" pb="6">
+      <chakra.form onSubmit={submit} flex="1" minH="0" overflowY="auto" overscrollBehaviorY="contain" px="4" pt="1" pb="6">
         <Stack gap="4">
           <Stack gap="1.5">
             <Label as="label" {...{ htmlFor: nameId }}>
