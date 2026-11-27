@@ -17,6 +17,7 @@ export * from './schedule/calendar';
 
 export * from './workout/workout';
 export * from './workout/previous-performance';
+export * from './workout/exercise-history';
 export * from './workout/recap';
 export * from './workout/rest-timer';
 export * from './workout/format';

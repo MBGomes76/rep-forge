@@ -31,11 +31,15 @@ export function formatSet(inputKind: InputKind, performance: SetPerformance): st
   return `${load} × ${formatReps(performance.reps)}`;
 }
 
+/** Comme `formatSet`, avec le RIR s'il a été noté : « 60 kg × 10 reps · RIR 2 ». */
+export function formatSetWithRir(inputKind: InputKind, performance: SetPerformance): string {
+  const rir = performance.kind === 'reps' && performance.rir !== null ? ` · RIR ${performance.rir}` : '';
+  return `${formatSet(inputKind, performance)}${rir}`;
+}
+
 /** « Préc. : 60 kg × 10 reps · RIR 2 » ou « Préc. : première fois » */
 export function formatPrevious(inputKind: InputKind, previous: SetPerformance | undefined): string {
-  if (!previous) return 'Préc. : première fois';
-  const rir = previous.kind === 'reps' && previous.rir !== null ? ` · RIR ${previous.rir}` : '';
-  return `Préc. : ${formatSet(inputKind, previous)}${rir}`;
+  return previous ? `Préc. : ${formatSetWithRir(inputKind, previous)}` : 'Préc. : première fois';
 }
 
 const sign = (n: number): string => (n > 0 ? '+' : '−');

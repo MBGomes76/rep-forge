@@ -15,13 +15,14 @@ import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router';
 import { useApp } from '../../app-context';
 import { ConfirmDialog } from '../../components/confirm-dialog';
-import { CheckIcon } from '../../components/icons';
+import { CheckIcon, ChevronRightIcon } from '../../components/icons';
 import { Screen } from '../../components/screen';
 import { notify, useAction } from '../../components/toaster';
 import { AppButton, Card, Hint, Label, Num } from '../../components/ui';
 import { formatClock, formatRest } from '../../format';
 import { useFinishedWorkouts, useRestTimer, useWorkoutInProgress } from '../../hooks/use-data';
 import { useNow } from '../../hooks/use-now';
+import type { ExerciseHistoryState } from '../exercise-history-screen';
 import { setGridColumns, SetRow, weightColumnLabel } from './set-row';
 
 export function WorkoutScreen() {
@@ -94,6 +95,7 @@ export function WorkoutScreen() {
 function ExerciseCard({ workout, exercise, history }: { workout: Workout; exercise: WorkoutExercise; history: Workout[] }) {
   const { useCases } = useApp();
   const run = useAction();
+  const navigate = useNavigate();
   const previous = previousPerformance(history, exercise.exerciseId, { excludeWorkoutId: workout.id });
   const target = formatTarget(exercise.target);
   const isDuration = exercise.inputKind === 'duration';
@@ -102,9 +104,26 @@ function ExerciseCard({ workout, exercise, history }: { workout: Workout; exerci
     <Card px="2" pt="3.5" pb="3">
       <Stack gap="1.5">
         <Box px="2">
-          <Box fontSize="17px" fontWeight="700">
+          {/* Le nom ouvre l'historique de l'exercice ; le retour ramène à la séance. */}
+          <chakra.button
+            type="button"
+            onClick={() => navigate(`/historique/exercices/${exercise.exerciseId}`, { state: { from: '/seance' } satisfies ExerciseHistoryState })}
+            aria-label={`Historique de ${exercise.name}`}
+            display="flex"
+            alignItems="center"
+            gap="1"
+            minH="32px"
+            fontSize="17px"
+            fontWeight="700"
+            color="rf.text"
+            textAlign="left"
+            cursor="pointer"
+          >
             {exercise.name}
-          </Box>
+            <Box as="span" color="rf.muted">
+              <ChevronRightIcon size={16} />
+            </Box>
+          </chakra.button>
           <Box fontSize="13px" color="rf.muted" mt="0.5">
             {exercise.loadConvention}
           </Box>

@@ -43,6 +43,10 @@ export const createRouter = () =>
         { path: '/programmes/:programId', lazy: () => import('../ui/screens/programs/program-edit-screen').then((m) => ({ Component: m.ProgramEditScreen })) },
         { path: '/programmes/:programId/seances/:stepId', lazy: () => import('../ui/screens/programs/session-edit-screen').then((m) => ({ Component: m.SessionEditScreen })) },
         { path: '/historique', lazy: () => import('../ui/screens/history-screen').then((m) => ({ Component: m.HistoryScreen })) },
+        {
+          path: '/historique/exercices/:exerciseId',
+          lazy: () => import('../ui/screens/exercise-history-screen').then((m) => ({ Component: m.ExerciseHistoryScreen })),
+        },
         { path: '/profil', lazy: () => import('../ui/screens/profile-screen').then((m) => ({ Component: m.ProfileScreen })) },
         { path: '*', element: <Navigate to="/" replace /> },
       ],
