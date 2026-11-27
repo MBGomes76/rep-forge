@@ -52,6 +52,25 @@ export default defineConfig({
       devOptions: { enabled: false },
     }),
   ],
+  build: {
+    rolldownOptions: {
+      output: {
+        /**
+         * Les bibliothèques dans leurs propres fichiers : elles changent rarement, le
+         * téléphone les garde en cache d'une version à l'autre et ne retélécharge
+         * que le code de l'app. Les écrans, eux, sont découpés par le routeur.
+         */
+        codeSplitting: {
+          groups: [
+            { name: 'react', test: /node_modules[\\/](react|react-dom|react-router|scheduler)[\\/]/, priority: 3 },
+            { name: 'chakra', test: /node_modules[\\/](@chakra-ui|@ark-ui|@zag-js|@emotion|@pandacss|@floating-ui)[\\/]/, priority: 2 },
+            { name: 'dexie', test: /node_modules[\\/](dexie|dexie-react-hooks)[\\/]/, priority: 2 },
+            { name: 'vendor', test: /node_modules[\\/]/, priority: 1 },
+          ],
+        },
+      },
+    },
+  },
   // En développement, l'API Symfony (symfony serve --no-tls) passe par le serveur Vite :
   // même origine que l'app, donc le cookie de session suffit, sans configuration CORS.
   server: {
